@@ -669,11 +669,12 @@ typedef enum {
 // Funct2 encoding
 Bit #(2) f2_S           = 2'b00;
 Bit #(2) f2_D           = 2'b01;
+Bit #(2) f2_P           = 2'b10;          // Quills: f2 for Posits
 Bit #(2) f2_Q           = 2'b11;
 
 // Floating point Load-Store
-Opcode   op_LOAD_FP     = 7'b_00_001_11;
-Opcode   op_STORE_FP    = 7'b_01_001_11;
+Opcode   op_LOAD_FP     = 7'b00_001_11;
+Opcode   op_STORE_FP    = 7'b01_001_11;
 Bit #(3) f3_FSW         = 3'b010;
 Bit #(3) f3_FSD         = 3'b011;
 Bit #(3) f3_FLW         = 3'b010;
@@ -684,6 +685,7 @@ Opcode   op_FMADD       = 7'b10_00_011;
 Opcode   op_FMSUB       = 7'b10_00_111;
 Opcode   op_FNMSUB      = 7'b10_01_011;
 Opcode   op_FNMADD      = 7'b10_01_111;
+Opcode   op_PFDP        = 7'b10_00_000;   // Quills: Fused-Dot-Product
 
 // All other FP intructions
 Opcode   op_FP          = 7'b10_10_011;
@@ -720,6 +722,10 @@ Bit #(7) f7_FCVT_S_LU   = 7'h68;
 
 Bit #(7) f7_FCVT_S_D    = 7'h20;
 Bit #(7) f7_FCVT_D_S    = 7'h21;
+Bit #(7) f7_FCVT_S_P    = 7'h22;       // Quills: Posit to Float
+Bit #(7) f7_FCVT_P_S    = 7'h23;       // Quills: Float to Posit
+Bit #(7) f7_FCVT_Q_P    = 7'h24;       // Quills: Posit to Quire
+Bit #(7) f7_FCVT_P_Q    = 7'h25;       // Quills: Quire to Posit
 Bit #(7) f7_FCVT_W_D    = 7'h61;
 Bit #(7) f7_FCVT_WU_D   = 7'h61;
 Bit #(7) f7_FCVT_D_W    = 7'h69;
@@ -839,6 +845,8 @@ function Bool fv_is_fp_instr_legal (
 `else
       return (f2 == f2_S);                   // Only SP is legal
 `endif
+   // Quills: PFDP instruction is only legal for posits
+   else if (fopc == op_PFDP) return (f2 == f2_P);
    else
       if (    (f7 == f7_FADD_S)  
           ||  (f7 == f7_FSUB_S)  
