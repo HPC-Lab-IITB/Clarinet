@@ -102,6 +102,11 @@ typedef struct {
    Bool       rd_in_fpr;      // result to be written to fpr
    Bool       rs_frm_fpr;     // src register is in fpr (for stores)
    Bool       val1_frm_gpr;   // first operand is in gpr (for some FP instrns)
+`ifdef POSIT
+   Bool       no_rd_upd;      // For instructions where the destn
+                              // is quire, there will be no update
+                              // of architectural state
+`endif
    Bit #(3)   rm;             // rounding mode
 `endif
 
@@ -134,6 +139,9 @@ ALU_Outputs alu_outputs_base
 	       rd_in_fpr   : False,
 	       rs_frm_fpr  : False,
 	       val1_frm_gpr: False,
+`ifdef POSIT
+               no_rd_upd   : False,
+`endif
 	       rm          : ?,
 `endif
 	       cf_info     : cf_info_base
@@ -989,24 +997,31 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
 
    alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2);
 
+`ifdef POSIT
+   alu_outputs.no_rd_upd = fv_is_destn_in_quire (opcode, funct7);
+`endif
+
 `ifdef INCLUDE_TANDEM_VERIF
    // Normal trace output (if no trap)
-   if (alu_outputs.rd_in_fpr)
-      alu_outputs.trace_data = mkTrace_F_FRD (fall_through_pc (inputs),
-					      fv_trace_isize (inputs),
-					      fv_trace_instr (inputs),
-					      inputs.decoded_instr.rd,
-					      ?,
-					      inputs.fflags,
-					      inputs.mstatus);
-   else
-      alu_outputs.trace_data = mkTrace_F_GRD (fall_through_pc (inputs),
-					      fv_trace_isize (inputs),
-					      fv_trace_instr (inputs),
-					      inputs.decoded_instr.rd,
-					      ?,
-					      inputs.fflags,
-					      inputs.mstatus);
+`ifdef POSIT
+   if (!alu_output.no_rd_upd) 
+`endif
+      if (alu_outputs.rd_in_fpr)
+         alu_outputs.trace_data = mkTrace_F_FRD (fall_through_pc (inputs),
+                                                 fv_trace_isize (inputs),
+                                                 fv_trace_instr (inputs),
+                                                 inputs.decoded_instr.rd,
+                                                 ?,
+                                                 inputs.fflags,
+                                                 inputs.mstatus);
+      else
+         alu_outputs.trace_data = mkTrace_F_GRD (fall_through_pc (inputs),
+                                                 fv_trace_isize (inputs),
+                                                 fv_trace_instr (inputs),
+                                                 inputs.decoded_instr.rd,
+                                                 ?,
+                                                 inputs.fflags,
+                                                 inputs.mstatus);
 `endif
    return alu_outputs;
 endfunction
@@ -1173,7 +1188,11 @@ function ALU_Outputs fv_ALU (ALU_Inputs inputs);
             || (inputs.decoded_instr.opcode == op_FMADD)
             || (inputs.decoded_instr.opcode == op_FMSUB)
             || (inputs.decoded_instr.opcode == op_FNMSUB)
-            || (inputs.decoded_instr.opcode == op_FNMADD))
+            || (inputs.decoded_instr.opcode == op_FNMADD)
+`ifdef POSIT
+            || (inputs.decoded_instr.opcode == op_PFDP)
+`endif
+           )
       alu_outputs = fv_FP (inputs);
 `endif
 

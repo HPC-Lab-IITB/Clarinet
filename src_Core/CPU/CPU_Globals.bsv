@@ -440,6 +440,9 @@ typedef struct {
    Bool       rd_in_fpr;         // The rd should update into FPR
    Bool       rs_frm_fpr;        // The rs is from FPR (FP stores)
    Bool       val1_frm_gpr;      // The val1 is from GPR for a FP instruction
+`ifdef POSIT
+   Bool       no_rd_upd;         // No rd to be updated as result goes to quire
+`endif
    Bit #(3)   rounding_mode;     // rounding mode from fcsr_frm or instr.rm
 `endif
 
@@ -459,6 +462,10 @@ instance FShow #(Data_Stage1_to_Stage2);
       fmt = fmt + $format ("\n");
       fmt = fmt + $format ("            fval1:%h  fval2:%h  fval3:%h}",
 			   x.fval1, x.fval2, x.fval3);
+`ifdef POSIT
+      fmt = fmt + $format ("\n");
+      fmt = fmt + $format ("no_rd_upd: ", fshow (x.no_rd_upd));
+`endif
 `endif
       return fmt;
    endfunction
@@ -519,6 +526,9 @@ typedef struct {
    Bool      rd_in_fpr;
    Bit #(5)  fpr_flags;
    WordFL    frd_val;
+`ifdef POSIT
+   Bool      no_rd_upd;
+`endif
 `endif
    } Data_Stage2_to_Stage3
 deriving (Bits);
@@ -529,6 +539,10 @@ instance FShow #(Data_Stage2_to_Stage3);
       fmt = fmt + $format ("        rd_valid:", fshow (x.rd_valid));
 
 `ifdef ISA_F
+`ifdef POSIT
+      if (x.no_rd_upd)
+         fmt = fmt + $format ("  Output to Quire. No Rd update.");
+`endif
       if (x.upd_flags)
          fmt = fmt + $format ("  fflags: %05b", fshow (x.fpr_flags));
 

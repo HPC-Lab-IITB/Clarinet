@@ -144,6 +144,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
                                                     upd_flags: False,
                                                     fpr_flags: 0,
                                                     frd_val  : rg_stage2.fval1,
+`ifdef POSIT
+                                                    no_rd_upd: False,
+`endif
 `endif
 						    rd_valid:  False,
 						    rd:        rg_stage2.rd,

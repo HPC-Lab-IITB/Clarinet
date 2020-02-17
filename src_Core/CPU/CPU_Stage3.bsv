@@ -152,13 +152,16 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 	 // Writeback Rd if valid
 	 if (rg_stage3.rd_valid) begin
 `ifdef ISA_F
-            // Write to FPR
-            if (rg_stage3.rd_in_fpr)
-               fpr_regfile.write_rd (rg_stage3.rd, rg_stage3.frd_val);
+`ifdef POSIT
+            if (!rg_stage3.no_rd_upd)
+`endif
+               // Write to FPR
+               if (rg_stage3.rd_in_fpr)
+                  fpr_regfile.write_rd (rg_stage3.rd, rg_stage3.frd_val);
 
-            else
-               // Write to GPR
-               gpr_regfile.write_rd (rg_stage3.rd, rg_stage3.rd_val);
+               else
+                  // Write to GPR
+                  gpr_regfile.write_rd (rg_stage3.rd, rg_stage3.rd_val);
 `else
             // Write to GPR in a non-FD system
             gpr_regfile.write_rd (rg_stage3.rd, rg_stage3.rd_val);
@@ -166,10 +169,13 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 
 	    if (verbosity > 1)
 `ifdef ISA_F
-               if (rg_stage3.rd_in_fpr)
-                  $display ("    S3.fa_deq: write FRd 0x%0h, rd_val 0x%0h",
-                            rg_stage3.rd, rg_stage3.frd_val);
-               else
+`ifdef POSIT
+               if (!rg_stage3.no_rd_upd)
+`endif
+                  if (rg_stage3.rd_in_fpr)
+                     $display ("    S3.fa_deq: write FRd 0x%0h, rd_val 0x%0h",
+                               rg_stage3.rd, rg_stage3.frd_val);
+                  else
 `endif
                   $display ("    S3.fa_deq: write GRd 0x%0h, rd_val 0x%0h",
                             rg_stage3.rd, rg_stage3.rd_val);
