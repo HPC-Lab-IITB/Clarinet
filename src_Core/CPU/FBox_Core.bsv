@@ -45,11 +45,14 @@ typedef enum {
 `ifdef POSIT
    FBOX_PBUSY,                   // FBox is busy and will output a
                                  // posit value
-   FBOX_QBUSY,                   // FBox is busy operating on
-                                 // Quire. No output value.
 `endif
    FBOX_RSP                      // FBox driving response
 } FBoxState deriving (Bits, Eq, FShow);
+
+`ifdef POSIT
+typedef enum {PFDP, FCVT_P_S, FCVT_S_P, FCVT_P_Q, FCVT_Q_P} PositCmds
+deriving (Bits, Eq, FShow);
+`endif
 
 interface FBox_Core_IFC;
    // ---- Reset
@@ -124,6 +127,13 @@ function FSingle fv_unbox (Bit #(64) x);
 `endif
 endfunction
 
+`ifdef POSIT
+function Bit#(32) fv_unbox_p (Bit #(64) x);
+   return (x [31:0]);
+endfunction
+`endif
+
+
 // Check if FSingle is a +0
 function Bool fv_FSingleIsPositiveZero ( FSingle x );
    return ( isZero (x) && !(x.sign) );
@@ -165,6 +175,10 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       , Bit #(5))))        resultR              <- mkRegU;
    
    FPU_IFC                 fpu                  <- mkFPU;
+
+`ifdef POSIT
+   Posit_IFC               positCore            <- mkPositCore;
+`endif
 
    // =============================================================
    // Drive response to the pipeline
@@ -280,11 +294,12 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    dV3 = unpack (v3);
 
 `ifdef POSIT
-   // Posits represented as raw 32-bits
+   // Posits represented as raw 32-bits. POSIT is meant to be
+   // enabled only with a 32-bit FPRs
    Bit #(32) pV1, pV2, pV3;
-   pV1 = truncate (v1);
-   pV2 = truncate (v2);
-   pV3 = truncate (v3);
+   pV1 = fv_unbox_p (v1);
+   pV2 = fv_unbox_p (v2);
+   pV3 = fv_unbox_p (v3);
 `endif
 
    let rmd = fv_getRoundMode (rm);
@@ -390,7 +405,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFCVT_P_S ( validReq && isFCVT_P_S );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_P_S: ", cur_cycle);
-      pCore_FCVT_P_S.request.put (pV1);
+      positCore.server_core.request.put (tuple4 (pV1, ?, ?, FCVT_P_S));
       stateR <= FBOX_PBUSY;
    endrule
 
@@ -398,23 +413,23 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFCVT_S_P ( validReq && isFCVT_S_P );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_S_P: ", cur_cycle);
-      pCore_FCVT_S_P.request.put (tuple2 (pV1, rmd));
-      stateR <= FBOX_BUSY;
+      positCore.server_core.request.put (tuple4 (pV1, ?, rmd, FCVT_S_P));
+      stateR <= FBOX_PBUSY;
    endrule
 
    // Execute a posit to quire conversion instruction
    rule doFCVT_Q_P ( validReq && isFCVT_Q_P );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_Q_P: ", cur_cycle);
-      pCore_FCVT_Q_P.request.put (pV1);
-      stateR <= FBOX_QBUSY;
+      positCore.server_core.request.put (tuple4 (pV1, ?, ?, FCVT_Q_P));
+      stateR <= FBOX_PBUSY;
    endrule
 
    // Execute a posit to floating point conversion instruction
    rule doFCVT_P_Q ( validReq && isFCVT_S_P );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_P_Q: ", cur_cycle);
-      pCore_FCVT_P_Q.request.put (pV1);
+      positCore.server_core.request.put (tuple4 (pV1, ?, ?, FCVT_P_Q));
       stateR <= FBOX_PBUSY;
    endrule
 
@@ -422,8 +437,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doPFDP ( validReq && isFCVT_S_P );
       if (verbosity > 1)
          $display ("%0d: %m: doPFDP: ", cur_cycle);
-      pCore_PFDP.request.put (tuple2 (pV1, pV2));
-      stateR <= FBOX_QBUSY;
+      positCore.server_core.request.put (tuple4 (pV1, pV2, ?, PFDP));
+      stateR <= FBOX_PBUSY;
    endrule
 `endif
 
@@ -1303,13 +1318,29 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       stateR      <= FBOX_RSP;
    endrule
 
-   // When the result is a posit value
+`ifdef POSIT
+   // When the result is from the posit core
    rule rl_get_posit_result (stateR == FBOX_PBUSY);
-   endrule
+      Posit_Rsp p <- positCore.server_core.response.get ();
+      match {.v, .e} = r;
+      Bit #(64) res = ?;
 
-   // When the result is a quire value
-   rule rl_get_quire_result (stateR == FBOX_QBUSY);
+      if (v matches tagged P .out)
+         res = fv_nanbox (extend (pack (out)));
+      else if (v matches tagged S .out)
+         if (isNaN (out))
+            res = fv_nanbox (extend (pack (canonicalNaN32)));
+         else
+            res = fv_nanbox (extend (pack (out)));
+      else
+         res = 32'b0;
+
+      let fcsr = exception_to_fcsr (e);
+      fa_driveResponse (res, fcsr);
+      resultR <= tagged Valid (tuple2 (res, fcsr));
+      stateR  <= FBOX_RSP;
    endrule
+`endif
 
    // This rule drives the results from the FBox to the pipeline
    rule rl_drive_fpu_result (stateR == FBOX_RSP);
