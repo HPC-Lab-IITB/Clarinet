@@ -19,6 +19,7 @@ typedef FloatingPoint#(8,23)  FSingle;
 typedef union tagged {
    FDouble D;
    FSingle S;
+   Bit #(PositWidth) P;
    } FloatU deriving(Bits,Eq);
 
 typedef Tuple5#( FloatU,FloatU,FloatU,RoundMode,FpuOp) Fpu_Req;

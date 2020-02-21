@@ -405,7 +405,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFCVT_P_S ( validReq && isFCVT_P_S );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_P_S: ", cur_cycle);
-      positCore.server_core.request.put (tuple4 (pV1, ?, ?, FCVT_P_S));
+      positCore.server_core.request.put (
+         tuple4 (tagged S sV1, ?, ?, FCVT_P_S));
       stateR <= FBOX_PBUSY;
    endrule
 
@@ -413,7 +414,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFCVT_S_P ( validReq && isFCVT_S_P );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_S_P: ", cur_cycle);
-      positCore.server_core.request.put (tuple4 (pV1, ?, rmd, FCVT_S_P));
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, ?, rmd, FCVT_S_P));
       stateR <= FBOX_PBUSY;
    endrule
 
@@ -421,7 +423,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFCVT_Q_P ( validReq && isFCVT_Q_P );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_Q_P: ", cur_cycle);
-      positCore.server_core.request.put (tuple4 (pV1, ?, ?, FCVT_Q_P));
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, ?, ?, FCVT_Q_P));
       stateR <= FBOX_PBUSY;
    endrule
 
@@ -429,7 +432,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFCVT_P_Q ( validReq && isFCVT_S_P );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_P_Q: ", cur_cycle);
-      positCore.server_core.request.put (tuple4 (pV1, ?, ?, FCVT_P_Q));
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, ?, ?, FCVT_P_Q));
       stateR <= FBOX_PBUSY;
    endrule
 
@@ -437,7 +441,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doPFDP ( validReq && isFCVT_S_P );
       if (verbosity > 1)
          $display ("%0d: %m: doPFDP: ", cur_cycle);
-      positCore.server_core.request.put (tuple4 (pV1, pV2, ?, PFDP));
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, PFDP));
       stateR <= FBOX_PBUSY;
    endrule
 `endif
