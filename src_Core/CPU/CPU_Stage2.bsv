@@ -458,32 +458,38 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
          data_to_stage3.rd_in_fpr= rg_stage2.rd_in_fpr;
          data_to_stage3.upd_flags= True;
          data_to_stage3.fpr_flags= fflags;
+`ifdef POSIT
+         data_to_stage3.no_rd_upd= rg_stage2.no_rd_upd;
+`endif
 
          // result is meant for a FPR
 	 let bypass              = bypass_base;
          let fbypass             = fbypass_base;
-         if (rg_stage2.rd_in_fpr) begin
-            fbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
-                                                               : BYPASS_RD);
+`ifdef POSIT
+         if (!rg_stage2.no_rd_upd) begin
+`endif
+            if (rg_stage2.rd_in_fpr) begin
+               fbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                                  : BYPASS_RD);
 `ifdef ISA_D
-            fbypass.rd_val          = value;
+               fbypass.rd_val          = value;
 `else
-            fbypass.rd_val          = truncate (value);
+               fbypass.rd_val          = truncate (value);
 `endif
-         end
+            end
 
-         // result is meant for a GPR
-         else begin
-            bypass.bypass_state     = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
-                                                               : BYPASS_RD);
+            // result is meant for a GPR
+            else begin
+               bypass.bypass_state     = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                                  : BYPASS_RD);
 `ifdef RV64
-            bypass.rd_val           = (value);
-            data_to_stage3.rd_val   = value;
+               bypass.rd_val           = (value);
+               data_to_stage3.rd_val   = value;
 `else
-            bypass.rd_val           = truncate (value);
-            data_to_stage3.rd_val   = truncate (value);
+               bypass.rd_val           = truncate (value);
+               data_to_stage3.rd_val   = truncate (value);
 `endif
-         end
+            end
 
          // -----
 `ifdef INCLUDE_TANDEM_VERIF

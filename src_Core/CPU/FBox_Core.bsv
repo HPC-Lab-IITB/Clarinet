@@ -50,7 +50,7 @@ typedef enum {
 } FBoxState deriving (Bits, Eq, FShow);
 
 `ifdef POSIT
-typedef enum {PFDP, FCVT_P_S, FCVT_S_P, FCVT_P_Q, FCVT_Q_P} PositCmds
+typedef enum {FMA_P, FCVT_P_S, FCVT_S_P, FCVT_P_Q, FCVT_Q_P} PositCmds
 deriving (Bits, Eq, FShow);
 `endif
 
@@ -269,11 +269,11 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
 
 `ifdef POSIT
    // New opcodes for posit computation
-   let isFCVT_S_P    = (opc == op_FP) && (f7 == f7_FCVT_S_P);
-   let isFCVT_P_S    = (opc == op_FP) && (f7 == f7_FCVT_P_S);
-   let isFCVT_Q_P    = (opc == op_FP) && (f7 == f7_FCVT_Q_P);
-   let isFCVT_P_Q    = (opc == op_FP) && (f7 == f7_FCVT_P_Q);
-   let isPFDP        = (opc == op_PFDP);
+   let isFCVT_S_P    = (opc == op_FP) && (f7 == f7_FCVT_S_P) && (rs2 == rs2_P);
+   let isFCVT_P_S    = (opc == op_FP) && (f7 == f7_FCVT_P_S) && (rs2 == rs2_S);
+   let isFCVT_Q_P    = (opc == op_FP) && (f7 == f7_FCVT_Q_P) && (rs2 == rs2_Q);
+   let isFCVT_P_Q    = (opc == op_FP) && (f7 == f7_FCVT_P_Q) && (rs2 == rs2_Q);
+   let isFMA_P       = (opc == op_FP) && (f7 == f7_FMA_P);
 `endif
 
    // =============================================================
@@ -429,7 +429,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    endrule
 
    // Execute a posit to floating point conversion instruction
-   rule doFCVT_P_Q ( validReq && isFCVT_S_P );
+   rule doFCVT_P_Q ( validReq && isFCVT_P_Q );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_P_Q: ", cur_cycle);
       positCore.server_core.request.put (
@@ -437,12 +437,12 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       stateR <= FBOX_PBUSY;
    endrule
 
-   // Execute a posit fused add instruction into quire
-   rule doPFDP ( validReq && isFCVT_S_P );
+   // Execute a posit fused multiply add instruction into quire
+   rule doFMA_P ( validReq && isFMA_P );
       if (verbosity > 1)
-         $display ("%0d: %m: doPFDP: ", cur_cycle);
+         $display ("%0d: %m: doFMA_P ", cur_cycle);
       positCore.server_core.request.put (
-         tuple4 (tagged P pV1, tagged P pV2, ?, PFDP));
+         tuple4 (tagged P pV1, tagged P pV2, ?, FMA_P));
       stateR <= FBOX_PBUSY;
    endrule
 `endif
