@@ -28,6 +28,7 @@ import GetPut_Aux :: *;
 // Project imports
 
 import ISA_Decls :: *;
+import FPU_Types :: *;
 import FPU       :: *;
 
 `ifdef POSIT

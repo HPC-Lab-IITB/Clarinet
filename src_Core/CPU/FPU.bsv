@@ -10,28 +10,10 @@ import FloatingPoint :: *;
 import Divide :: *;
 import SquareRoot ::*;
 import ISA_Decls :: *;
-`ifdef POSIT
-import Posit_Numeric_Types :: *;
-`endif
+import FPU_Types :: *;
 
 // ================================================================
 // Type definitions
-typedef FloatingPoint#(11,52) FDouble;
-typedef FloatingPoint#(8,23)  FSingle;
-
-typedef union tagged {
-   FDouble D;
-   FSingle S;
-`ifdef POSIT
-   Bit #(PositWidth) P;
-`endif
-   } FloatU deriving(Bits,Eq);
-
-typedef Tuple5#( FloatU,FloatU,FloatU,RoundMode,FpuOp) Fpu_Req;
-typedef Tuple2#( FloatU, FloatingPoint::Exception )       Fpu_Rsp;
-
-typedef Tuple2#( FDouble, FloatingPoint::Exception )      FpuR;
-
 interface FPU_IFC;
    interface Server #( Fpu_Req, Fpu_Rsp ) server_core;
 
