@@ -50,8 +50,22 @@ typedef enum {
 } FBoxState deriving (Bits, Eq, FShow);
 
 `ifdef POSIT
-typedef enum {FMA_P, FCVT_P_S, FCVT_S_P, FCVT_P_Q, FCVT_Q_P} PositCmds
+typedef enum {FMA_P, FCVT_P_S, FCVT_S_P, FCVT_P_R, FCVT_R_P} PositCmds
 deriving (Bits, Eq, FShow);
+
+typedef Tuple4 #(FloatU, FloatU, RoundMode, PositCmds) Posit_Req;
+
+interface PositCore_IFC;
+   interface Server #(Posit_Req, Fpu_Rsp) server_core;
+endinterface
+
+(* synthesize *)
+module mkPositCore (PositCore_IFC);
+   FIFOF #(Posit_Req) f_in <- mkFIFOF;
+   FIFOF #(Fpu_Rsp) f_out <- mkFIFOF;
+
+   interface server_core = toGPServer (f_in, f_out);
+endmodule
 `endif
 
 interface FBox_Core_IFC;
@@ -177,7 +191,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    FPU_IFC                 fpu                  <- mkFPU;
 
 `ifdef POSIT
-   Posit_IFC               positCore            <- mkPositCore;
+   PositCore_IFC           positCore            <- mkPositCore;
 `endif
 
    // =============================================================
@@ -271,8 +285,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    // New opcodes for posit computation
    let isFCVT_S_P    = (opc == op_FP) && (f7 == f7_FCVT_S_P) && (rs2 == rs2_P);
    let isFCVT_P_S    = (opc == op_FP) && (f7 == f7_FCVT_P_S) && (rs2 == rs2_S);
-   let isFCVT_Q_P    = (opc == op_FP) && (f7 == f7_FCVT_Q_P) && (rs2 == rs2_Q);
-   let isFCVT_P_Q    = (opc == op_FP) && (f7 == f7_FCVT_P_Q) && (rs2 == rs2_Q);
+   let isFCVT_R_P    = (opc == op_FP) && (f7 == f7_FCVT_R_P) && (rs2 == rs2_R);
+   let isFCVT_P_R    = (opc == op_FP) && (f7 == f7_FCVT_P_R) && (rs2 == rs2_R);
    let isFMA_P       = (opc == op_FP) && (f7 == f7_FMA_P);
 `endif
 
@@ -420,20 +434,20 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    endrule
 
    // Execute a posit to quire conversion instruction
-   rule doFCVT_Q_P ( validReq && isFCVT_Q_P );
+   rule doFCVT_R_P ( validReq && isFCVT_R_P );
       if (verbosity > 1)
-         $display ("%0d: %m: doFCVT_Q_P: ", cur_cycle);
+         $display ("%0d: %m: doFCVT_R_P: ", cur_cycle);
       positCore.server_core.request.put (
-         tuple4 (tagged P pV1, ?, ?, FCVT_Q_P));
+         tuple4 (tagged P pV1, ?, ?, FCVT_R_P));
       stateR <= FBOX_PBUSY;
    endrule
 
    // Execute a posit to floating point conversion instruction
-   rule doFCVT_P_Q ( validReq && isFCVT_P_Q );
+   rule doFCVT_P_R ( validReq && isFCVT_P_R );
       if (verbosity > 1)
-         $display ("%0d: %m: doFCVT_P_Q: ", cur_cycle);
+         $display ("%0d: %m: doFCVT_P_R: ", cur_cycle);
       positCore.server_core.request.put (
-         tuple4 (tagged P pV1, ?, ?, FCVT_P_Q));
+         tuple4 (tagged P pV1, ?, ?, FCVT_P_R));
       stateR <= FBOX_PBUSY;
    endrule
 
@@ -1326,8 +1340,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
 `ifdef POSIT
    // When the result is from the posit core
    rule rl_get_posit_result (stateR == FBOX_PBUSY);
-      Posit_Rsp p <- positCore.server_core.response.get ();
-      match {.v, .e} = r;
+      Fpu_Rsp p <- positCore.server_core.response.get ();
+      match {.v, .e} = p;
       Bit #(64) res = ?;
 
       if (v matches tagged P .out)
@@ -1337,8 +1351,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
             res = fv_nanbox (extend (pack (canonicalNaN32)));
          else
             res = fv_nanbox (extend (pack (out)));
-      else
-         res = 32'b0;
+      else  // posit-core will never give D type
+         res = 0;
 
       let fcsr = exception_to_fcsr (e);
       fa_driveResponse (res, fcsr);

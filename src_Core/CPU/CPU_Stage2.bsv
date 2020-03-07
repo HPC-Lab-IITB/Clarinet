@@ -466,7 +466,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 	 let bypass              = bypass_base;
          let fbypass             = fbypass_base;
 `ifdef POSIT
-         if (!rg_stage2.no_rd_upd) begin
+         if (!rg_stage2.no_rd_upd)
 `endif
             if (rg_stage2.rd_in_fpr) begin
                fbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL

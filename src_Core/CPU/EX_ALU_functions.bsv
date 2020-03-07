@@ -1189,9 +1189,6 @@ function ALU_Outputs fv_ALU (ALU_Inputs inputs);
             || (inputs.decoded_instr.opcode == op_FMSUB)
             || (inputs.decoded_instr.opcode == op_FNMSUB)
             || (inputs.decoded_instr.opcode == op_FNMADD)
-`ifdef POSIT
-            || (inputs.decoded_instr.opcode == op_PFDP)
-`endif
            )
       alu_outputs = fv_FP (inputs);
 `endif

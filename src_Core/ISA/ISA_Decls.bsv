@@ -677,9 +677,10 @@ Bit #(2) f2_Q           = 2'b11;
 
 // RS2 encoding
 Bit #(5) rs2_S          = 5'h00;
+Bit #(5) rs2_D          = 5'h01;
 `ifdef POSIT
-Bit #(5) rs2_P          = 5'h02;          // Quills: rs2 for Posits
-Bit #(5) rs2_R          = 5'h10;          // Quills: rs2 for Quire
+Bit #(5) rs2_P          = 5'h10;          // Quills: rs2 for Posits
+Bit #(5) rs2_R          = 5'h11;          // Quills: rs2 for Quire
 `endif
 
 // Floating point Load-Store
@@ -737,8 +738,8 @@ Bit #(7) f7_FCVT_D_S    = 7'h21;
 `ifdef POSIT
 Bit #(7) f7_FCVT_S_P    = 7'h20;       // Quills: Posit to Float
 Bit #(7) f7_FCVT_P_S    = 7'h22;       // Quills: Float to Posit
-Bit #(7) f7_FCVT_Q_P    = 7'h62;       // Quills: Posit to Quire
-Bit #(7) f7_FCVT_P_Q    = 7'h6a;       // Quills: Quire to Posit
+Bit #(7) f7_FCVT_R_P    = 7'h62;       // Quills: Posit to Quire
+Bit #(7) f7_FCVT_P_R    = 7'h6a;       // Quills: Quire to Posit
 `endif
 Bit #(7) f7_FCVT_W_D    = 7'h61;
 Bit #(7) f7_FCVT_WU_D   = 7'h61;
@@ -859,7 +860,7 @@ function Bool fv_is_fp_instr_legal (
 `else
       return (f2 == f2_S);                   // Only SP is legal
 `endif
-   // Quills: PFDP instruction is only legal for posits
+   // Quills: FMA.P instruction is only legal for posits
    else
       if (    (f7 == f7_FADD_S)  
           ||  (f7 == f7_FSUB_S)  
@@ -914,8 +915,8 @@ function Bool fv_is_fp_instr_legal (
           || ((f7 == f7_FCVT_D_L) && (rs2 == 2))
           || ((f7 == f7_FCVT_D_LU)&& (rs2 == 3))
 `endif
-          || ((f7 == f7_FCVT_D_S) && (rs2 == 0))
-          || ((f7 == f7_FCVT_S_D) && (rs2 == 1))
+          || ((f7 == f7_FCVT_D_S) && (rs2 == rs2_S))
+          || ((f7 == f7_FCVT_S_D) && (rs2 == rs2_D))
           || ((f7 == f7_FMIN_D)   && ( rm == 0))
           || ((f7 == f7_FMAX_D)   && ( rm == 1))
           || ((f7 == f7_FCMP_D)   && ( rm == 0))
@@ -929,8 +930,8 @@ function Bool fv_is_fp_instr_legal (
           || ((f7 == f7_FMA_P) && (f2 == f2_P))
           || ((f7 == f7_FCVT_S_P) && (rs2 == rs2_P))
           || ((f7 == f7_FCVT_P_S) && (rs2 == rs2_S))
-          || ((f7 == f7_FCVT_P_Q) && (rs2 == rs2_R))
-          || ((f7 == f7_FCVT_Q_P) && (rs2 == rs2_R))
+          || ((f7 == f7_FCVT_P_R) && (rs2 == rs2_R))
+          || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_R))
 `endif
          ) return True;
       else return False;
@@ -966,15 +967,15 @@ endfunction
 // Posit instructions which update the quire does not update GPR
 // or FPR state (architectural state).
 function Bool fv_is_destn_in_quire (Opcode opc, Bit #(7) f7);
-   return (   (opcode == op_FP)
+   return (   (opc == op_FP)
            && (   (f7 == f7_FMA_P)
-               || (f7 == f7_FCVT_Q_P)));
+               || (f7 == f7_FCVT_R_P)));
 endfunction
 
 // Posit instructions which takes no operands from the FPR or GPR
 // but only reads from the quire
 function Bool fv_is_source_in_quire (Opcode opc, Bit #(7) f7);
-   return ((opcode == op_FP) && (f7 == f7_FCVT_P_Q));
+   return ((opc == op_FP) && (f7 == f7_FCVT_P_R));
 endfunction 
 `endif
 `endif
