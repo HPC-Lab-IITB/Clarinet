@@ -10,21 +10,20 @@ import FloatingPoint :: *;
 import Divide :: *;
 import SquareRoot ::*;
 import ISA_Decls :: *;
+`ifdef POSIT
+import Posit_Numeric_Types :: *;
+`endif
 
 // ================================================================
 // Type definitions
 typedef FloatingPoint#(11,52) FDouble;
 typedef FloatingPoint#(8,23)  FSingle;
 
-`ifdef POSIT
-typedef 32 POSITWIDTH;
-`endif
-
 typedef union tagged {
    FDouble D;
    FSingle S;
 `ifdef POSIT
-   Bit #(POSITWIDTH) P;
+   Bit #(PositWidth) P;
 `endif
    } FloatU deriving(Bits,Eq);
 

@@ -30,6 +30,10 @@ import GetPut_Aux :: *;
 import ISA_Decls :: *;
 import FPU       :: *;
 
+`ifdef POSIT
+import PositCore :: *;
+`endif
+
 // ================================================================
 // FBox interface
 
@@ -49,24 +53,6 @@ typedef enum {
    FBOX_RSP                      // FBox driving response
 } FBoxState deriving (Bits, Eq, FShow);
 
-`ifdef POSIT
-typedef enum {FMA_P, FCVT_P_S, FCVT_S_P, FCVT_P_R, FCVT_R_P} PositCmds
-deriving (Bits, Eq, FShow);
-
-typedef Tuple4 #(FloatU, FloatU, RoundMode, PositCmds) Posit_Req;
-
-interface PositCore_IFC;
-   interface Server #(Posit_Req, Fpu_Rsp) server_core;
-endinterface
-
-(* synthesize *)
-module mkPositCore (PositCore_IFC);
-   FIFOF #(Posit_Req) f_in <- mkFIFOF;
-   FIFOF #(Fpu_Rsp) f_out <- mkFIFOF;
-
-   interface server_core = toGPServer (f_in, f_out);
-endmodule
-`endif
 
 interface FBox_Core_IFC;
    // ---- Reset
