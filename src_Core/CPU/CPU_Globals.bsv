@@ -319,6 +319,7 @@ instance FShow #(Data_StageD_to_Stage1);
 	    fmt = fmt + $format ("  instr_C:%0h", x.instr_C);
 	 fmt = fmt + $format ("  instr:%0h  pred_pc:%0h", x.instr, x.pred_pc);
       end
+      fmt = fmt + fshow (x.decoded_instr);
       fmt = fmt + $format ("}");
       return fmt;
    endfunction

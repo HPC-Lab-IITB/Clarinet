@@ -25,6 +25,9 @@ BSC_COMPILATION_FLAGS += \
 	-D POSIT       	\
 	-D QUILLS	\
 
+# For Melodica debug statements
+# BSC_COMPILATION_FLAGS += -D RANDOM -D RANDOM_PRINT \
+
 MELODICA_DIRS = $(REPO)/Melodica/src_bsv:$(REPO)/Melodica/src_bsv/Fdp:$(REPO)/Melodica/src_bsv/FtoP:$(REPO)/Melodica/src_bsv/lib:$(REPO)/Melodica/src_bsv/PtoF:$(REPO)/Melodica/src_bsv/PtoQ:$(REPO)/Melodica/src_bsv/QtoP
 
 # Default ISA test
