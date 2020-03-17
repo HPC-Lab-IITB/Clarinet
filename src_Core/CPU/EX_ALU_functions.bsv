@@ -55,6 +55,10 @@ typedef struct {
    Bit #(5)       fflags;
 `endif
 `endif
+`ifdef POSIT
+   WordPL         prs1_val;
+   WordPL         prs2_val;
+`endif
    MISA           misa;
    } ALU_Inputs
 deriving (Bits, FShow);
@@ -103,9 +107,13 @@ typedef struct {
    Bool       rs_frm_fpr;     // src register is in fpr (for stores)
    Bool       val1_frm_gpr;   // first operand is in gpr (for some FP instrns)
 `ifdef POSIT
+   Bool       rd_in_prf;      // For instructions where the destn
+                              // is in the Posit RF
    Bool       no_rd_upd;      // For instructions where the destn
                               // is quire, there will be no update
                               // of architectural state
+   WordPL     pval1;          // OP_Stage2_P: arg1
+   WordPL     pval2;          // OP_Stage2_P: arg2
 `endif
    Bit #(3)   rm;             // rounding mode
 `endif
@@ -141,6 +149,9 @@ ALU_Outputs alu_outputs_base
 	       val1_frm_gpr: False,
 `ifdef POSIT
                no_rd_upd   : False,
+	       rd_in_prf   : False,
+	       pval1       : ?,
+	       pval2       : ?,
 `endif
 	       rm          : ?,
 `endif
@@ -999,6 +1010,11 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
 
 `ifdef POSIT
    alu_outputs.no_rd_upd = fv_is_destn_in_quire (opcode, funct7);
+   alu_outputs.rd_in_prf = fv_is_rd_in_PRF (opcode, funct7);
+   alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2) && 
+                           !fv_is_rd_in_PRF (opcode, funct7);
+`else
+   alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2);
 `endif
 
 `ifdef INCLUDE_TANDEM_VERIF

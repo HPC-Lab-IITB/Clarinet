@@ -443,6 +443,9 @@ typedef struct {
    Bool       val1_frm_gpr;      // The val1 is from GPR for a FP instruction
 `ifdef POSIT
    Bool       no_rd_upd;         // No rd to be updated as result goes to quire
+   Bool       rd_in_prf;         // The rd should update into PRF
+   WordPL     pval1;             // OP_Stage2_P: arg1
+   WordPL     pval2;             // OP_Stage2_P: arg2
 `endif
    Bit #(3)   rounding_mode;     // rounding mode from fcsr_frm or instr.rm
 `endif
@@ -465,7 +468,10 @@ instance FShow #(Data_Stage1_to_Stage2);
 			   x.fval1, x.fval2, x.fval3);
 `ifdef POSIT
       fmt = fmt + $format ("\n");
-      fmt = fmt + $format ("no_rd_upd: ", fshow (x.no_rd_upd));
+      fmt = fmt + $format ("            no_rd_upd: ", fshow (x.no_rd_upd));
+      fmt = fmt + $format ("            rd_in_prf: ", fshow (x.rd_in_prf));
+      fmt = fmt + $format ("            pval1:%h  pval2:%h }",
+			   x.pval1, x.pval2);
 `endif
 `endif
       return fmt;

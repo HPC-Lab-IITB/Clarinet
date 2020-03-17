@@ -977,6 +977,13 @@ endfunction
 function Bool fv_is_source_in_quire (Opcode opc, Bit #(7) f7);
    return ((opc == op_FP) && (f7 == f7_FCVT_P_R));
 endfunction 
+
+// Posit instructions whose rd is in the posit register file
+function Bool fv_is_rd_in_PRF (Opcode opc, Bit #(7) f7);
+   return (   (opc == op_FP)
+           && (   (f7 == f7_FCVT_P_R)
+               || (f7 == f7_FCVT_P_S)));
+endfunction
 `endif
 `endif
 

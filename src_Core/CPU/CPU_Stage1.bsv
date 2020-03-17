@@ -146,6 +146,22 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
    match { .fbusy3b, .frs3b } = fn_fpr_bypass (fbypass_from_stage2, rs3, frs3a);
    Bool frs3_busy = (fbusy3a || fbusy3b);
    WordFL frs3_val_bypassed = frs3b;
+
+`ifdef POSIT
+   // Posit Register rs1 read and bypass
+   let prs1_val = pos_regfile.read_rs1 (rs1);
+   match { .pbusy1a, .prs1a } = fn_prf_bypass (pbypass_from_stage3, rs1, prs1_val);
+   match { .pbusy1b, .prs1b } = fn_prf_bypass (pbypass_from_stage2, rs1, prs1a);
+   Bool prs1_busy = (pbusy1a || pbusy1b);
+   WordPL prs1_val_bypassed = prs1b;
+
+   // FP Register rs2 read and bypass
+   let prs2_val = pos_regfile.read_rs2 (rs2);
+   match { .pbusy2a, .prs2a } = fn_prf_bypass (pbypass_from_stage3, rs2, prs2_val);
+   match { .pbusy2b, .prs2b } = fn_prf_bypass (pbypass_from_stage2, rs2, prs2a);
+   Bool prs2_busy = (pbusy2a || pbusy2b);
+   WordPL prs2_val_bypassed = prs2b;
+`endif
 `endif
 
    // ALU function
@@ -166,6 +182,11 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 				frm            : csr_regfile.read_frm,
 `ifdef INCLUDE_TANDEM_VERIF
                                 fflags         : csr_regfile.read_fflags,
+`endif
+
+`ifdef POSIT
+				prs1_val       : prs1_val_bypassed,
+				prs2_val       : prs2_val_bypassed,
 `endif
 `endif
 				mstatus        : csr_regfile.read_mstatus,
@@ -189,6 +210,9 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 					       val1_frm_gpr  : alu_outputs.val1_frm_gpr,
 `ifdef POSIT
                                                no_rd_upd     : alu_outputs.no_rd_upd,
+					       rd_in_prf     : alu_outputs.rd_in_prf,
+					       pval1         : alu_outputs.pval1,
+					       pval2         : alu_outputs.pval2,
 `endif
 					       rounding_mode : alu_outputs.rm,
 `endif
