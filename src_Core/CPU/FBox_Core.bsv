@@ -69,6 +69,10 @@ interface FBox_Core_IFC;
       , Bit #(64)                   v1
       , Bit #(64)                   v2
       , Bit #(64)                   v3
+`ifdef POSIT
+      , Bit #(32)                   pv1
+      , Bit #(32)                   pv2
+`endif
    );
 
    // FBox response
@@ -146,6 +150,19 @@ function Bool fv_FDoubleIsPositiveZero ( FDouble x );
 endfunction
 
 // ================================================================
+typedef struct {
+        Opcode    opc
+      , Bit #(7)  f7
+      , RegName   rs2
+      , Bit #(3)  rm
+      , Bit #(64) v1
+      , Bit #(64) v2
+      , Bit #(64) v3
+`ifdef POSIT
+      , Bit #(32) pv1
+      , Bit #(32) pv2
+`endif
+} FReq deriving (Bits, Eq, FShow);
 
 (* synthesize *)
 module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
@@ -157,14 +174,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
 
    Reg   #(FBoxState)      stateR         <- mkReg (FBOX_RST);
 
-   Reg   #(Maybe #(Tuple7 #(
-        Opcode
-      , Bit #(7)
-      , RegName 
-      , Bit #(3)
-      , Bit #(64)
-      , Bit #(64)
-      , Bit #(64))))       requestR       <- mkRegU;
+   Reg   #(Maybe #(FReq)   requestR       <- mkRegU;
 
    Reg   #(Bool)           dw_valid       <- mkDWire (False);
    Reg   #(Tuple2 #(
@@ -192,7 +202,18 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
 
    // =============================================================
    // Decode sub-opcodes (a direct lift from the spec)
-   match {.opc, .f7, .rs2, .rm, .v1, .v2, .v3} = requestR.Valid;
+   let opc = requestR.Valid.opc;
+   let f7 = requestR.Valid.f7;
+   let rs2 = requestR.Valid.rs2;
+   let rm = requestR.Valid.rm;
+   let v1 = requestR.Valid.v1;
+   let v2 = requestR.Valid.v2;
+   let v3 = requestR.Valid.v3;
+`ifdef POSIT
+   let pv1 = requestR.Valid.pv1;
+   let pv2 = requestR.Valid.pv2;
+`endif
+
    Bit #(2) f2 = f7[1:0];
 `ifdef ISA_D
    let isFMADD_D     = (opc == op_FMADD)  && (f2 == 1);
@@ -295,12 +316,12 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    dV3 = unpack (v3);
 
 `ifdef POSIT
-   // Posits represented as raw 32-bits. POSIT is meant to be
-   // enabled only with a 32-bit FPRs
-   Bit #(32) pV1, pV2, pV3;
-   pV1 = fv_unbox_p (v1);
-   pV2 = fv_unbox_p (v2);
-   pV3 = fv_unbox_p (v3);
+   // Posits represented as raw 32-bits. There is not type
+   // conversion from the fields in FReq - just renaming for
+   // consistency
+   Bit #(32) pV1, pV2;
+   pV1 = pv1;
+   pV2 = pv2;
 `endif
 
    let rmd = fv_getRoundMode (rm);
@@ -429,7 +450,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       stateR <= FBOX_PBUSY;
    endrule
 
-   // Execute a posit to floating point conversion instruction
+   // Execute a quire to posit conversion instruction
    rule doFCVT_P_R ( validReq && isFCVT_P_R );
       if (verbosity > 1)
          $display ("%0d: %m: doFCVT_P_R ", cur_cycle);
@@ -1376,10 +1397,26 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       , Bit #(64) val1
       , Bit #(64) val2
       , Bit #(64) val3
+`ifdef POSIT
+      , Bit #(32) pv1
+      , Bit #(32) pv2
+`endif
    );
       // Legal instruction
-      requestR <= tagged Valid (
-         tuple7 (opcode, funct7, rs2_name, rounding_mode, val1, val2, val3));
+      let freq = FReq {
+           opc:opcode        
+         , f7 :funct7
+         , rs2:rounding_mode
+         , rm :rs2_name
+         , v1 :val1
+         , v2 :val2
+         , v3 :val3
+`ifdef POSIT
+         , pv1:pv1
+         , pv2:pv2
+`endif
+      };
+      requestR <= tagged Valid freq;
 
       // Start processing the instruction
       resultR  <= tagged Invalid;

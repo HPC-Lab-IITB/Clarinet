@@ -46,6 +46,10 @@ interface FBox_Top_IFC;
       , Bit #(64)                   v1
       , Bit #(64)                   v2
       , Bit #(64)                   v3
+`ifdef POSIT
+      , Bit #(32)                   pv1
+      , Bit #(32)                   pv2
+`endif
    );
 
    // FBox interface: response
@@ -76,6 +80,10 @@ module mkFBox_Top #(Bit #(4) verbosity) (FBox_Top_IFC);
       , Bit #(64) val1
       , Bit #(64) val2
       , Bit #(64) val3
+`ifdef POSIT
+      , Bit #(32) pv1
+      , Bit #(32) pv2
+`endif
    );
       // Legal instruction
       fbox_core.req (
@@ -85,7 +93,12 @@ module mkFBox_Top #(Bit #(4) verbosity) (FBox_Top_IFC);
          , rs2_name
          , val1
          , val2
-         , val3);
+         , val3
+`ifdef POSIT
+         , pv1
+         , pv2
+`endif
+         );
    endmethod
 
    // FBox interface: response

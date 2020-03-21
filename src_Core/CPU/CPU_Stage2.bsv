@@ -136,6 +136,15 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 			       };
 `endif
 
+// Bypass logic for the posit RF
+`ifdef POSIT
+   let pbypass_base = PBypass {bypass_state: BYPASS_RD_NONE,
+			       rd:           rg_stage2.rd,
+			       rd_val:       rg_stage2.pval1
+			       };
+
+`endif
+
    let data_to_stage3_base = Data_Stage2_to_Stage3 {priv:      rg_stage2.priv,
 						    pc:        rg_stage2.pc,
 						    instr:     rg_stage2.instr,
@@ -146,6 +155,8 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
                                                     frd_val  : rg_stage2.fval1,
 `ifdef POSIT
                                                     no_rd_upd: False,
+                                                    rd_in_prf: False,
+                                                    prd_val  : rg_stage2.pval1
 `endif
 `endif
 						    rd_valid:  False,
@@ -200,6 +211,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             , bypass          : no_bypass
 `ifdef ISA_F
             , fbypass         : no_fbypass
+`ifdef POSIT
+            , pbypass         : no_pbypass
+`endif
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
 	    , trace_data      : ?
@@ -226,6 +240,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             , bypass          : bypass
 `ifdef ISA_F
             , fbypass         : no_fbypass
+`ifdef POSIT
+            , pbypass         : no_pbypass
+`endif
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
             , trace_data      : trace_data
@@ -333,6 +350,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
                , bypass          : bypass
 `ifdef ISA_F
                , fbypass         : fbypass
+`ifdef POSIT
+               , pbypass         : no_pbypass
+`endif
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
                , trace_data      : trace_data
@@ -363,6 +383,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             , bypass          : no_bypass
 `ifdef ISA_F
             , fbypass         : no_fbypass
+`ifdef POSIT
+            , pbypass         : no_pbypass
+`endif
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
             , trace_data      : trace_data
@@ -397,6 +420,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             , bypass          : bypass
 `ifdef ISA_F
             , fbypass         : no_fbypass
+`ifdef POSIT
+            , pbypass         : no_pbypass
+`endif
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
             , trace_data      : trace_data
@@ -432,6 +458,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             , bypass          : bypass
 `ifdef ISA_F
             , fbypass         : no_fbypass
+`ifdef POSIT
+            , pbypass         : no_pbypass
+`endif
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
             , trace_data      : trace_data
@@ -460,36 +489,51 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
          data_to_stage3.fpr_flags= fflags;
 `ifdef POSIT
          data_to_stage3.no_rd_upd= rg_stage2.no_rd_upd;
+         data_to_stage3.rd_in_prf= rg_stage2.rd_in_prf;
+         data_to_stage3.prd_val  = truncate (value);
+`endif
+`ifdef RV64
+         data_to_stage3.rd_val   = value;
+`else
+         data_to_stage3.rd_val   = truncate (value);
 `endif
 
-         // result is meant for a FPR
 	 let bypass              = bypass_base;
          let fbypass             = fbypass_base;
 `ifdef POSIT
-         if (!rg_stage2.no_rd_upd)
+         let pbypass             = pbypass_base;
 `endif
-            if (rg_stage2.rd_in_fpr) begin
-               fbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
-                                                                  : BYPASS_RD);
+         // result is meant for a FPR
+         if (rg_stage2.rd_in_fpr) begin
+            fbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                               : BYPASS_RD);
 `ifdef ISA_D
-               fbypass.rd_val          = value;
+            fbypass.rd_val          = value;
 `else
-               fbypass.rd_val          = truncate (value);
+            fbypass.rd_val          = truncate (value);
 `endif
-            end
+         end
 
-            // result is meant for a GPR
-            else begin
-               bypass.bypass_state     = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
-                                                                  : BYPASS_RD);
-`ifdef RV64
-               bypass.rd_val           = (value);
-               data_to_stage3.rd_val   = value;
-`else
-               bypass.rd_val           = truncate (value);
-               data_to_stage3.rd_val   = truncate (value);
-`endif
+`ifdef POSIT
+         else if ((rg_stage2.rd_in_prf) || (rg_stage3.no_rd_upd)) begin
+            if ((rg_stage2.rd_in_prf) && (!rg_stage2.no_rd_upd)) begin
+               pbypass.bypass_state = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                               : BYPASS_RD);
+               pbypass.rd_val       = truncate (value);
             end
+         end
+`endif
+
+         // result is meant for a GPR
+         else begin
+            bypass.bypass_state     = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                               : BYPASS_RD);
+`ifdef RV64
+            bypass.rd_val           = (value);
+`else
+            bypass.rd_val           = truncate (value);
+`endif
+          end
 
          // -----
 `ifdef INCLUDE_TANDEM_VERIF
@@ -514,6 +558,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             , bypass          : bypass
 `ifdef ISA_F
             , fbypass         : fbypass
+`ifdef POSIT
+            , pbypass         : pbypass
+`endif
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
             , trace_data      : trace_data
@@ -626,6 +673,10 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 		      , val1
 		      , extend (x.fval2)
 		      , extend (x.fval3) 
+`ifdef POSIT
+		      , x.pval1
+		      , x.pval2 
+`endif
 		     );
          end
 `endif

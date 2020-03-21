@@ -158,6 +158,28 @@ instance FShow #(FBypass);
 endinstance
 `endif
 
+`ifdef POSIT
+typedef struct {
+   Bypass_State  bypass_state;
+   RegName       rd;
+   WordPL        rd_val;
+   } PBypass
+deriving (Bits);
+
+instance FShow #(PBypass);
+   function Fmt fshow (PBypass x);
+      let fmt0 = $format ("PBypass {");
+      let fmt1 = ((x.bypass_state == BYPASS_RD_NONE)
+		  ? $format ("PRd -")
+		  : $format ("PRd %0d ", x.rd) + ((x.bypass_state == BYPASS_RD)
+						 ? $format ("-")
+						 : $format ("prd_val:%h", x.rd_val)));
+      let fmt2 = $format ("}");
+      return fmt0 + fmt1 + fmt2;
+   endfunction
+endinstance
+`endif
+
 // ----------------
 // Baseline bypass info
 
@@ -170,6 +192,13 @@ FBypass no_fbypass = FBypass {bypass_state: BYPASS_RD_NONE,
 			      rd: ?,
 			      rd_val: ? };
 `endif
+
+`ifdef POSIT
+PBypass no_pbypass = PBypass {bypass_state: BYPASS_RD_NONE,
+			      rd: ?,
+			      rd_val: ? };
+`endif
+
 
 // ----------------
 // Bypass functions for GPRs
@@ -192,6 +221,20 @@ endfunction
 function Tuple2 #(Bool, WordFL) fn_fpr_bypass (FBypass bypass, RegName rd, WordFL rd_val);
    Bool busy = ((bypass.bypass_state == BYPASS_RD) && (bypass.rd == rd));
    WordFL val= (  ((bypass.bypass_state == BYPASS_RD_RDVAL) && (bypass.rd == rd))
+		? bypass.rd_val
+		: rd_val);
+   return tuple2 (busy, val);
+endfunction
+`endif
+
+`ifdef POSIT
+// PBypass functions for Posits
+// Returns '(busy, val)'
+// 'busy' means that the RegName is valid and matches, but the value is not available yet
+
+function Tuple2 #(Bool, WordPL) fn_prf_bypass (PBypass bypass, RegName rd, WordPL rd_val);
+   Bool busy = ((bypass.bypass_state == BYPASS_RD) && (bypass.rd == rd));
+   WordPL val= (  ((bypass.bypass_state == BYPASS_RD_RDVAL) && (bypass.rd == rd))
 		? bypass.rd_val
 		: rd_val);
    return tuple2 (busy, val);
@@ -487,8 +530,13 @@ typedef struct {
 
    // feedback
    Bypass                 bypass;
+
 `ifdef ISA_F
    FBypass                fbypass;
+`endif
+
+`ifdef POSIT
+   PBypass                pbypass;
 `endif
 
    // feedforward data
@@ -535,6 +583,8 @@ typedef struct {
    WordFL    frd_val;
 `ifdef POSIT
    Bool      no_rd_upd;
+   Bool      rd_in_prf;         // The rd should update into PRF
+   WordPL    prd_val;
 `endif
 `endif
    } Data_Stage2_to_Stage3
@@ -549,6 +599,8 @@ instance FShow #(Data_Stage2_to_Stage3);
 `ifdef POSIT
       if (x.no_rd_upd)
          fmt = fmt + $format ("  Output to Quire. No Rd update.");
+      if (x.rd_in_prf)
+         fmt = fmt + $format ("  prd:%0d  rd_val:%h\n", x.rd, x.prd_val);
 `endif
       if (x.upd_flags)
          fmt = fmt + $format ("  fflags: %05b", fshow (x.fpr_flags));
@@ -570,6 +622,9 @@ typedef struct {
    Bypass         bypass;
 `ifdef ISA_F
    FBypass        fbypass;
+`endif
+`ifdef POSIT
+   PBypass        pbypass;
 `endif
    } Output_Stage3
 deriving (Bits);
