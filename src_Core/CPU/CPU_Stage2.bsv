@@ -145,23 +145,25 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 
 `endif
 
-   let data_to_stage3_base = Data_Stage2_to_Stage3 {priv:      rg_stage2.priv,
-						    pc:        rg_stage2.pc,
-						    instr:     rg_stage2.instr,
+   let data_to_stage3_base = Data_Stage2_to_Stage3 {
+        priv:      rg_stage2.priv
+      , pc:        rg_stage2.pc
+      , instr:     rg_stage2.instr
 `ifdef ISA_F
-                                                    rd_in_fpr: False,
-                                                    upd_flags: False,
-                                                    fpr_flags: 0,
-                                                    frd_val  : rg_stage2.fval1,
+      , rd_in_fpr: False
+      , upd_flags: False
+      , fpr_flags: 0
+      , frd_val  : rg_stage2.fval1
 `ifdef POSIT
-                                                    no_rd_upd: False,
-                                                    rd_in_prf: False,
-                                                    prd_val  : rg_stage2.pval1
+      , no_rd_upd: False
+      , rd_in_prf: False
+      , prd_val  : rg_stage2.pval1
 `endif
 `endif
-						    rd_valid:  False,
-						    rd:        rg_stage2.rd,
-						    rd_val:    rg_stage2.val1};
+      ,	rd_valid:  False
+      , rd:        rg_stage2.rd
+      , rd_val:    rg_stage2.val1
+   };
 
    let  trap_info_dmem = Trap_Info {epc:      rg_stage2.pc,
 				    exc_code: dcache.exc_code,
@@ -515,7 +517,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
          end
 
 `ifdef POSIT
-         else if ((rg_stage2.rd_in_prf) || (rg_stage3.no_rd_upd)) begin
+         else if ((rg_stage2.rd_in_prf) || (rg_stage2.no_rd_upd)) begin
             if ((rg_stage2.rd_in_prf) && (!rg_stage2.no_rd_upd)) begin
                pbypass.bypass_state = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
                                                                : BYPASS_RD);

@@ -45,6 +45,9 @@ import TV_Info   :: *;
 import GPR_RegFile :: *;
 `ifdef ISA_F
 import FPR_RegFile :: *;
+`ifdef POSIT
+import PRF_RegFile :: *;
+`endif
 `endif
 import CSR_RegFile :: *;
 import CPU_Globals :: *;
@@ -127,6 +130,9 @@ module mkCPU (CPU_IFC);
    GPR_RegFile_IFC  gpr_regfile  <- mkGPR_RegFile;
 `ifdef ISA_F
    FPR_RegFile_IFC  fpr_regfile  <- mkFPR_RegFile;
+`ifdef POSIT
+   PRF_RegFile_IFC  prf_regfile  <- mkPRF_RegFile;
+`endif
 `endif
 
    CSR_RegFile_IFC  csr_regfile  <- mkCSR_RegFile;
@@ -204,6 +210,9 @@ module mkCPU (CPU_IFC);
 					  gpr_regfile,
 `ifdef ISA_F
 					  fpr_regfile,
+`ifdef POSIT
+					  prf_regfile,
+`endif
 `endif
 					  csr_regfile);
 
@@ -217,6 +226,11 @@ module mkCPU (CPU_IFC);
 					   fpr_regfile,
 					   stage2.out.fbypass,
 					   stage3.out.fbypass,
+`ifdef POSIT
+					   prf_regfile,
+					   stage2.out.pbypass,
+					   stage3.out.pbypass,
+`endif
 `endif
 					   csr_regfile,
 					   rg_epoch,
@@ -452,6 +466,9 @@ module mkCPU (CPU_IFC);
       gpr_regfile.server_reset.request.put (?);
 `ifdef ISA_F
       fpr_regfile.server_reset.request.put (?);
+`ifdef POSIT
+      prf_regfile.server_reset.request.put (?);
+`endif
 `endif
       csr_regfile.server_reset.request.put (?);
       near_mem.server_reset.request.put (?);
@@ -496,6 +513,9 @@ module mkCPU (CPU_IFC);
       let ack_gpr <- gpr_regfile.server_reset.response.get;
 `ifdef ISA_F
       let ack_fpr <- fpr_regfile.server_reset.response.get;
+`ifdef POSIT
+      let ack_prf <- prf_regfile.server_reset.response.get;
+`endif
 `endif
       let ack_csr <- csr_regfile.server_reset.response.get;
       let ack_nm  <- near_mem.server_reset.response.get;

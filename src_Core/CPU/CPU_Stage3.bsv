@@ -45,6 +45,9 @@ import ISA_Decls   :: *;
 import GPR_RegFile :: *;
 `ifdef ISA_F
 import FPR_RegFile :: *;
+`ifdef POSIT
+import PRF_RegFile :: *;
+`endif
 `endif
 import CSR_RegFile :: *;
 import CPU_Globals :: *;
@@ -190,6 +193,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
                fpr_regfile.write_rd (rg_stage3.rd, rg_stage3.frd_val);
 
 `ifdef POSIT
+            // Write to PRF
             else if ((rg_stage3.rd_in_prf) || (rg_stage3.no_rd_upd))
                // Important that GPR write is not triggered by
                // default for quire operations

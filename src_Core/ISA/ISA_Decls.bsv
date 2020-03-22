@@ -25,6 +25,10 @@ import DefaultValue :: *;
 import Vector       :: *;
 import BuildVector  :: *;
 
+`ifdef POSIT
+import Posit_Numeric_Types :: *;
+`endif
+
 // ================================================================
 // BSV project imports
 
@@ -130,6 +134,10 @@ typedef  TDiv #(FLEN, Bits_per_Byte)           Bytes_per_WordFL;
 typedef  TLog #(Bytes_per_WordFL)              Bits_per_Byte_in_WordFL;
 typedef  Bit #(Bits_per_Byte_in_WordFL)        Byte_in_WordFL;
 typedef  Vector #(Bytes_per_WordFL, Byte)      WordFL_B;
+
+`ifdef POSIT
+typedef  Bit #(PositWidth) WordPL;
+`endif
 
 `endif
 

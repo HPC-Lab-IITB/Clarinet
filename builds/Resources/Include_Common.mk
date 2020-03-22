@@ -52,6 +52,7 @@ TOPMODULE ?= mkTop_HW_Side
 BSC_COMPILATION_FLAGS += \
 	-keep-fires -aggressive-conditions -no-warn-action-shadowing -no-show-timestamps -check-assert \
 	-suppress-warnings G0020    \
+	-Xc++  -D_GLIBCXX_USE_CXX11_ABI=0 \
 	+RTS -K128M -RTS  -show-range-conflict
 
 # ================================================================

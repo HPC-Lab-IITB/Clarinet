@@ -151,16 +151,16 @@ endfunction
 
 // ================================================================
 typedef struct {
-        Opcode    opc
-      , Bit #(7)  f7
-      , RegName   rs2
-      , Bit #(3)  rm
-      , Bit #(64) v1
-      , Bit #(64) v2
-      , Bit #(64) v3
+      Opcode    opc;
+      Bit #(7)  f7;
+      RegName   rs2;
+      Bit #(3)  rm;
+      Bit #(64) v1;
+      Bit #(64) v2;
+      Bit #(64) v3;
 `ifdef POSIT
-      , Bit #(32) pv1
-      , Bit #(32) pv2
+      Bit #(32) pv1;
+      Bit #(32) pv2;
 `endif
 } FReq deriving (Bits, Eq, FShow);
 
@@ -174,7 +174,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
 
    Reg   #(FBoxState)      stateR         <- mkReg (FBOX_RST);
 
-   Reg   #(Maybe #(FReq)   requestR       <- mkRegU;
+   Reg   #(Maybe #(FReq))  requestR       <- mkRegU;
 
    Reg   #(Bool)           dw_valid       <- mkDWire (False);
    Reg   #(Tuple2 #(
@@ -1398,22 +1398,22 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       , Bit #(64) val2
       , Bit #(64) val3
 `ifdef POSIT
-      , Bit #(32) pv1
-      , Bit #(32) pv2
+      , Bit #(32) pval1
+      , Bit #(32) pval2
 `endif
    );
       // Legal instruction
       let freq = FReq {
            opc:opcode        
          , f7 :funct7
-         , rs2:rounding_mode
-         , rm :rs2_name
+         , rs2:rs2_name
+         , rm :rounding_mode
          , v1 :val1
          , v2 :val2
          , v3 :val3
 `ifdef POSIT
-         , pv1:pv1
-         , pv2:pv2
+         , pv1:pval1
+         , pv2:pval2
 `endif
       };
       requestR <= tagged Valid freq;

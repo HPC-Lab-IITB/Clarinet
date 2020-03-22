@@ -17,7 +17,7 @@ typedef union tagged {
    FDouble D;
    FSingle S;
 `ifdef POSIT
-   Bit #(PositWidth) P;
+   WordPL  P;
 `endif
    } FloatU deriving(Bits,Eq,FShow);
 

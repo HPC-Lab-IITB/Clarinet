@@ -42,5 +42,5 @@ include $(REPO)/builds/Resources/Include_Common.mk
 #================================================================
 # Makefile rules for building for specific simulator: bluesim
 
-include $(REPO)/builds/Resources/Include_bluesim.mk
+include $(REPO)/builds/Resources/Include_verilator.mk
 

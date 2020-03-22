@@ -36,6 +36,9 @@ import Near_Mem_IFC     :: *;
 import GPR_RegFile      :: *;
 `ifdef ISA_F
 import FPR_RegFile      :: *;
+`ifdef POSIT
+import PRF_RegFile      :: *;
+`endif
 `endif
 import CSR_RegFile      :: *;
 import EX_ALU_functions :: *;
@@ -78,6 +81,11 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 		      FPR_RegFile_IFC  fpr_regfile,
 		      FBypass          fbypass_from_stage2,
 		      FBypass          fbypass_from_stage3,
+`ifdef POSIT
+                      PRF_RegFile_IFC  prf_regfile,
+		      PBypass          pbypass_from_stage2,
+		      PBypass          pbypass_from_stage3,
+`endif
 `endif
 		      CSR_RegFile_IFC  csr_regfile,
 		      Epoch            cur_epoch,
@@ -149,14 +157,14 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 
 `ifdef POSIT
    // Posit Register rs1 read and bypass
-   let prs1_val = pos_regfile.read_rs1 (rs1);
+   let prs1_val = prf_regfile.read_rs1 (rs1);
    match { .pbusy1a, .prs1a } = fn_prf_bypass (pbypass_from_stage3, rs1, prs1_val);
    match { .pbusy1b, .prs1b } = fn_prf_bypass (pbypass_from_stage2, rs1, prs1a);
    Bool prs1_busy = (pbusy1a || pbusy1b);
    WordPL prs1_val_bypassed = prs1b;
 
    // FP Register rs2 read and bypass
-   let prs2_val = pos_regfile.read_rs2 (rs2);
+   let prs2_val = prf_regfile.read_rs2 (rs2);
    match { .pbusy2a, .prs2a } = fn_prf_bypass (pbypass_from_stage3, rs2, prs2_val);
    match { .pbusy2b, .prs2b } = fn_prf_bypass (pbypass_from_stage2, rs2, prs2a);
    Bool prs2_busy = (pbusy2a || pbusy2b);
@@ -276,6 +284,12 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
       else if (frs1_busy || frs2_busy || frs3_busy) begin
 	 output_stage1.ostatus = OSTATUS_BUSY;
       end
+`ifdef POSIT
+      // Stall if bypass pending for PRF rs1, rs2 or rs3
+      else if (prs1_busy || prs2_busy) begin
+	 output_stage1.ostatus = OSTATUS_BUSY;
+      end
+`endif
 `endif
 
       // Trap on fetch-exception
