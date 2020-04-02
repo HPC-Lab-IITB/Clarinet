@@ -1,1 +1,17 @@
-Experiemetal setup for yosys based synthesis
+TOP_MODULE = mkCPU
+Versions:
+
+RV32ACFIMSU
+Base version
+
+RV32ACDFIMSU
+To determine the cost of double precision
+
+RV32ACFIMSUP_32
+Cost of 32 bit posit wrt baseline
+
+RV32ACFIMSUP_24
+Cost of 24 bit posit wrt baseline
+
+RV32ACFIMSUP_16
+Cost of 16 bit posit wrt baseline
