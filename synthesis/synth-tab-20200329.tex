@@ -1,0 +1,49 @@
+\documentclass[11pt]{article}
+\usepackage{verbatim}
+\usepackage{fancyvrb}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{placeins}
+\begin{document}
+
+\subsection*{Synthesis Round Two (Sunday)}
+Discovered that the multiply-add which is the main pipeline in the
+FPU is always configured to be 64-bit. Made the change to the FPU
+to configure it as 32 or 64 bit depending on ISA configuration
+settings. This will widen the gap between single and double
+precision builds, working in Melodica's favour. I need to push
+this fix up to Flute as well.
+
+\noindent Comparisons between different implementations:
+\begin{center}
+\begin{tabular}{|l|r|r|r|}
+\hline
+\textbf{Cells or Area} & \textbf{RV32ACFIMSU} & \textbf{RV32ACDFIMSU}  & \textbf{RV32ACFIMSU-P32} \\
+                       & \textbf{(Baseline)}  & \textbf{(With Double)} & \textbf{(With Posit-32)} \\
+\hline
+AND2X1        &    4640     &      8184     &       7221      \\
+AOI21X1       &   10468     &     16578     &      13250      \\
+AOI22X1       &    5354     &      6645     &       5519      \\
+BRAM2         &       5     &         5     &          5      \\
+BUFX2         &      57     &        54     &         77      \\
+DFFPOSX1      &   14986     &     19490     &      30329      \\
+INVX1         &   10616     &     16512     &      21259      \\
+MUX2X1        &   33044     &     42729     &      44974      \\
+NAND2X1       &   27210     &     39951     &      41961      \\
+NAND3X1       &   10780     &     13459     &      35130      \\
+NOR2X1        &    4012     &      6737     &       6135      \\
+NOR3X1        &    2225     &      4176     &       3733      \\
+OAI21X1       &   17903     &     26513     &      22284      \\
+OR2X1         &    4272     &      7551     &       6675      \\
+XNOR2X1       &    3238     &      5371     &       5691      \\
+XOR2X1        &    2842     &      5577     &       4743      \\
+\hline
+Total Cells   & 151652      &   219532      &     248986      \\
+\hline
+Area          & 497674.3473 &   704899.8632 &     826799.1303 \\
+\hline
+\end{tabular}
+\end{center}
+
+\end{document}
