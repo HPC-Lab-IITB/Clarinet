@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2019 Bluespec, Inc. All Rights Reserved
+// Copyright (c) 2016-2020 Bluespec, Inc. All Rights Reserved
 
 package CPU_Globals;
 
@@ -156,7 +156,6 @@ instance FShow #(FBypass);
       return fmt0 + fmt1 + fmt2;
    endfunction
 endinstance
-`endif
 
 `ifdef POSIT
 typedef struct {
@@ -179,6 +178,7 @@ instance FShow #(PBypass);
    endfunction
 endinstance
 `endif
+`endif
 
 // ----------------
 // Baseline bypass info
@@ -191,12 +191,12 @@ Bypass no_bypass = Bypass {bypass_state: BYPASS_RD_NONE,
 FBypass no_fbypass = FBypass {bypass_state: BYPASS_RD_NONE,
 			      rd: ?,
 			      rd_val: ? };
-`endif
 
 `ifdef POSIT
 PBypass no_pbypass = PBypass {bypass_state: BYPASS_RD_NONE,
 			      rd: ?,
 			      rd_val: ? };
+`endif
 `endif
 
 
@@ -225,7 +225,6 @@ function Tuple2 #(Bool, WordFL) fn_fpr_bypass (FBypass bypass, RegName rd, WordF
 		: rd_val);
    return tuple2 (busy, val);
 endfunction
-`endif
 
 `ifdef POSIT
 // PBypass functions for Posits
@@ -239,6 +238,7 @@ function Tuple2 #(Bool, WordPL) fn_prf_bypass (PBypass bypass, RegName rd, WordP
 		: rd_val);
    return tuple2 (busy, val);
 endfunction
+`endif
 `endif
 
 // ================================================================
@@ -533,17 +533,15 @@ typedef struct {
 
 `ifdef ISA_F
    FBypass                fbypass;
-`endif
 
 `ifdef POSIT
    PBypass                pbypass;
 `endif
 
+`endif
+
    // feedforward data
    Data_Stage2_to_Stage3  data_to_stage3;
-`ifdef INCLUDE_TANDEM_VERIF
-   Trace_Data             trace_data;
-`endif
    } Output_Stage2
 deriving (Bits);
 
@@ -587,6 +585,10 @@ typedef struct {
    WordPL    prd_val;
 `endif
 `endif
+
+`ifdef INCLUDE_TANDEM_VERIF
+   Trace_Data             trace_data;
+`endif
    } Data_Stage2_to_Stage3
 deriving (Bits);
 
@@ -622,9 +624,13 @@ typedef struct {
    Bypass         bypass;
 `ifdef ISA_F
    FBypass        fbypass;
-`endif
 `ifdef POSIT
    PBypass        pbypass;
+`endif
+`endif
+
+`ifdef INCLUDE_TANDEM_VERIF
+   Trace_Data     trace_data;
 `endif
    } Output_Stage3
 deriving (Bits);

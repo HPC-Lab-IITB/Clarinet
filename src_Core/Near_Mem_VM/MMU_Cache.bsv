@@ -1,5 +1,8 @@
-// Copyright (c) 2016-2019 Bluespec, Inc. All Rights Reserved.
+// Copyright (c) 2016-2020 Bluespec, Inc. All Rights Reserved.
 
+package MMU_Cache;
+
+// ================================================================
 // A combined MMU and L1 Cache for RISC-V.
 // The MMU is capable of handling pages, superpages and gigapages.
 // The cache is simple, in-order, blocking, and has a "write-around" policy:
@@ -34,13 +37,6 @@
 //  - Memory addrs: request goes to the cache logic
 //                      (back end of cache logic talks to fabric interface)
 //  - IO:           request does directly to fabric interface (no cacheing)
-
-// VM-SYNTH-OPT: Comments beginning with this indicate that the following state
-// elements are unused in non-VM mode, and ought to be optimized away by
-// gate-level synthesis tools. If those tools are unable to do this,
-// we might need to enclose them in ifdefs.
-
-package MMU_Cache;
 
 // ================================================================
 // BSV lib imports
@@ -475,7 +471,6 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
 
    Reg #(WordXL)     rg_satp        <- mkRegU;    // Copy of value in SATP CSR { VM_Mode, ASID, PPN }
 `else
-   // VM-SYNTH-OPT
    // Dummy registers in non-VM mode
    Priv_Mode x = m_Priv_Mode;
    Reg #(Priv_Mode)  rg_priv        = fn_genNullRegIfc (x);
@@ -540,10 +535,8 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
    // This reg is used in the reset-loop when resetting all states
    Reg #(CSet_in_Cache)  rg_cset_in_cache   <- mkReg (0);
 
-   // These regs are used in the cache refill loop for ram_Word64_Set
-   // TODO: DELETE after testing bursts
-   // DELETE: Reg #(Bool)                rg_requesting_cline    <- mkReg (False);
-   // DELETE: Reg #(Fabric_Addr)         rg_req_byte_in_cline   <- mkRegU;
+   // These regs are used in the cache refill loop for ram_State_and_CTag_CSet
+   // and ram_Word64_Set
    Reg #(Word64_Set_in_Cache) rg_word64_set_in_cache <- mkRegU;
    Reg #(Bool)                rg_error_during_refill <- mkRegU;
    // In 32b fabrics, these hold the lower word32 while we're fetching the upper word32 of a word64
@@ -599,7 +592,7 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
 			 way, way_hit);
 
 	    hit     = hit || hit_at_way;
-	    way_hit = fromInteger (way);
+	    if (hit_at_way) way_hit = fromInteger (way);
 	    word64  = (word64 | (word64_at_way & pack (replicate (hit_at_way))));
 	 end
 
@@ -791,7 +784,6 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
    rule rl_start_reset ((f_reset_reqs.notEmpty) && (rg_state != MODULE_RESETTING));
       rg_state             <= MODULE_RESETTING;
       rg_cset_in_cache     <= 0;
-      // rg_requesting_cline  <= False;    TODO: DELETE after testing bursts
       rg_lower_word32_full <= False;
 
       // Flush the TLB
@@ -808,8 +800,15 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
 	 ctr_wr_rsps_pending.clear;
       end
 
-      if (cfg_verbosity > 1)
-	 $display ("%0d: %s.rl_start_reset", cur_cycle, d_or_i);
+      $display ("%0d: %s: cache size %0d KB, associativity %0d, line size %0d bytes (= %0d XLEN words)",
+		cur_cycle, d_or_i, kb_per_cache, ways_per_cset,
+		(word64s_per_cline * 8),
+`ifdef RV32
+		(word64s_per_cline * 2)
+`else
+		(word64s_per_cline * 1)
+`endif
+		);
    endrule
 
    // This rule loops over csets, setting state of each cline in the set to EMPTY
@@ -1282,7 +1281,7 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
 	 PA           lev_0_pte_pa        = lev_0_PTN_pa + vpn_0_pa;
 	 PA           lev_0_pte_pa_w64    = { lev_0_pte_pa [pa_sz - 1 : 3], 3'b0 };    // 64b-aligned addr
 	 Fabric_Addr  lev_0_pte_pa_w64_fa = fn_PA_to_Fabric_Addr (lev_0_pte_pa_w64);
-`ifdef Sv32
+`ifdef SV32
 	 AXI4_Size    axi4_size           = axsize_4;
 `else
 	 AXI4_Size    axi4_size           = axsize_8;
@@ -1411,10 +1410,6 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
       Fabric_Addr    cline_fabric_addr = fn_PA_to_Fabric_Addr (cline_addr);
       fa_fabric_send_read_burst_req (cline_fabric_addr);
 
-      // TODO: DELETE after testing bursts
-      // DELETE rg_requesting_cline  <= True;
-      // DELETE rg_req_byte_in_cline <= ((valueOf (Wd_Data) == 32) ? 4 : 8);
-
       // Pick a victim 'way'
       // TODO: prioritize picking an EMPTY slot over a CLEAN slot
       // Currently just uses rg_victim_way and increments it
@@ -1426,11 +1421,9 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
       Way_in_CSet new_victim_way = truncate (tmp);
       rg_victim_way <= new_victim_way;
 
-      // Update the State_and_CTag_CSet (BRAM port A)
-      let new_state_and_ctag_cset = state_and_ctag_cset;
-      new_state_and_ctag_cset [new_victim_way] = State_and_CTag {state: CTAG_CLEAN,
-								 ctag : fn_PA_to_CTag (rg_pa)};
-      ram_state_and_ctag_cset.a.put (bram_cmd_write, cset_in_cache, new_state_and_ctag_cset);
+      // State_and_CTag_CSet are updated in rl_cache_refill_rsps_loop
+      // only after observing the first read-response, to assure that
+      // the read is successfule and not an access error.
 
       // Request read of first Word64_Set in CLine (BRAM port B)
       // for set read-modify-write (not relevant for direct-mapped)
@@ -1529,13 +1522,22 @@ module mkMMU_Cache  #(parameter Bool dmem_not_imem)  (MMU_Cache_IFC);
 	       $display ("        32b fabric: concat with rg_lower_word32: new_word64 0x%0x", new_word64);
 	 end
 
+	 Word64_in_CLine word64_in_cline = truncate (rg_word64_set_in_cache);
+
+	 // Update the State_and_CTag_CSet (BRAM port A) (if this is the first
+	 // response and not an error)
+	 if ((word64_in_cline == 0) && (! err_rsp)) begin
+	    let new_state_and_ctag_cset = state_and_ctag_cset;
+	    new_state_and_ctag_cset [rg_victim_way] = State_and_CTag {state: CTAG_CLEAN,
+								      ctag : fn_PA_to_CTag (rg_pa)};
+	    ram_state_and_ctag_cset.a.put (bram_cmd_write, cset_in_cache, new_state_and_ctag_cset);
+	 end
+
 	 // Update the Word64_Set (BRAM port A) (if this response was not an error)
 	 let new_word64_set = word64_set;
 	 new_word64_set [rg_victim_way] = new_word64;
 	 if (! err_rsp)
 	    ram_word64_set.a.put (bram_cmd_write, rg_word64_set_in_cache, new_word64_set);
-
-	 Word64_in_CLine word64_in_cline = truncate (rg_word64_set_in_cache);
 
 	 // If more word64_sets in cacheline, initiate RAM read for next word64_set
 	 if (word64_in_cline != fromInteger (word64s_per_cline - 1)) begin
