@@ -24,7 +24,10 @@ typedef union tagged {
 typedef Tuple5#( FloatU,FloatU,FloatU,RoundMode,FpuOp) Fpu_Req;
 typedef Tuple2#( FloatU, FloatingPoint::Exception )       Fpu_Rsp;
 
+`ifdef ISA_D
 typedef Tuple2#( FDouble, FloatingPoint::Exception )      FpuR;
-
+`else
+typedef Tuple2#( FSingle, FloatingPoint::Exception )      FpuR;
+`endif
 
 endpackage : FPU_Types

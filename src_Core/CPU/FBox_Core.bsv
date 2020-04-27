@@ -70,8 +70,8 @@ interface FBox_Core_IFC;
       , Bit #(64)                   v2
       , Bit #(64)                   v3
 `ifdef POSIT
-      , Bit #(32)                   pv1
-      , Bit #(32)                   pv2
+      , WordPL                      pv1
+      , WordPL                      pv2
 `endif
    );
 
@@ -159,8 +159,8 @@ typedef struct {
       Bit #(64) v2;
       Bit #(64) v3;
 `ifdef POSIT
-      Bit #(32) pv1;
-      Bit #(32) pv2;
+      WordPL    pv1;
+      WordPL    pv2;
 `endif
 } FReq deriving (Bits, Eq, FShow);
 
@@ -319,7 +319,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    // Posits represented as raw 32-bits. There is not type
    // conversion from the fields in FReq - just renaming for
    // consistency
-   Bit #(32) pV1, pV2;
+   WordPL pV1, pV2;
    pV1 = pv1;
    pV2 = pv2;
 `endif
@@ -1398,8 +1398,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       , Bit #(64) val2
       , Bit #(64) val3
 `ifdef POSIT
-      , Bit #(32) pval1
-      , Bit #(32) pval2
+      , WordPL    pval1
+      , WordPL    pval2
 `endif
    );
       // Legal instruction

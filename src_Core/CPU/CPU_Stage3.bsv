@@ -140,7 +140,9 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 `endif
       if (rg_stage3.rd_in_fpr) begin
          bypass.bypass_state = BYPASS_RD_NONE;
+`ifdef POSIT
          pbypass.bypass_state = BYPASS_RD_NONE;
+`endif
          fbypass.bypass_state = (rg_full && rg_stage3.rd_valid) ? BYPASS_RD_RDVAL
                                                                 : BYPASS_RD_NONE;
       end
@@ -160,7 +162,9 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 
       else begin
          fbypass.bypass_state = BYPASS_RD_NONE;
+`ifdef POSIT
          pbypass.bypass_state = BYPASS_RD_NONE;
+`endif
          bypass.bypass_state = (rg_full && rg_stage3.rd_valid) ? BYPASS_RD_RDVAL
                                                                : BYPASS_RD_NONE;
       end
@@ -173,7 +177,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 			    bypass : bypass
 `ifdef ISA_F
 			    , fbypass: fbypass
-`ifdef ISA_F
+`ifdef POSIT
 			    , pbypass: pbypass
 `endif
 `endif

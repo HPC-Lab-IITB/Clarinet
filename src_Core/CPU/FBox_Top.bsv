@@ -47,8 +47,8 @@ interface FBox_Top_IFC;
       , Bit #(64)                   v2
       , Bit #(64)                   v3
 `ifdef POSIT
-      , Bit #(32)                   pv1
-      , Bit #(32)                   pv2
+      , WordPL                      pv1
+      , WordPL                      pv2
 `endif
    );
 
@@ -81,8 +81,8 @@ module mkFBox_Top #(Bit #(4) verbosity) (FBox_Top_IFC);
       , Bit #(64) val2
       , Bit #(64) val3
 `ifdef POSIT
-      , Bit #(32) pv1
-      , Bit #(32) pv2
+      , WordPL    pv1
+      , WordPL    pv2
 `endif
    );
       // Legal instruction
