@@ -319,10 +319,10 @@ module mkFBox_Core(verbosity,
 		MUX_resultR$write_1__VAL_8,
 		MUX_resultR$write_1__VAL_9;
   wire [68 : 0] MUX_dw_result$wset_1__VAL_1;
+  wire MUX_dw_result$wset_1__SEL_1;
 
   // declarations used by system tasks
   // synopsys translate_off
-<<<<<<< HEAD
   reg [31 : 0] v__h1092;
   reg [31 : 0] v__h1585;
   reg [31 : 0] v__h1774;
@@ -375,7 +375,6 @@ module mkFBox_Core(verbosity,
   reg [31 : 0] v__h159327;
   reg [31 : 0] v__h160311;
   reg [31 : 0] v__h24056;
-  reg [31 : 0] v__h30808;
   reg [31 : 0] v__h1086;
   reg [31 : 0] v__h1579;
   reg [31 : 0] v__h1768;
@@ -411,6 +410,7 @@ module mkFBox_Core(verbosity,
   reg [31 : 0] v__h30331;
   reg [31 : 0] v__h30487;
   reg [31 : 0] v__h30645;
+  reg [31 : 0] v__h30808;
   reg [31 : 0] v__h40791;
   reg [31 : 0] v__h50494;
   reg [31 : 0] v__h52103;
@@ -425,108 +425,6 @@ module mkFBox_Core(verbosity,
   reg [31 : 0] v__h159169;
   reg [31 : 0] v__h159321;
   reg [31 : 0] v__h160305;
-=======
-  reg [31 : 0] v__h1105;
-  reg [31 : 0] v__h1576;
-  reg [31 : 0] v__h1765;
-  reg [31 : 0] v__h1966;
-  reg [31 : 0] v__h2221;
-  reg [31 : 0] v__h2406;
-  reg [31 : 0] v__h2591;
-  reg [31 : 0] v__h2783;
-  reg [31 : 0] v__h2972;
-  reg [31 : 0] v__h3160;
-  reg [31 : 0] v__h3338;
-  reg [31 : 0] v__h3506;
-  reg [31 : 0] v__h3686;
-  reg [31 : 0] v__h10182;
-  reg [31 : 0] v__h16360;
-  reg [31 : 0] v__h17986;
-  reg [31 : 0] v__h18768;
-  reg [31 : 0] v__h21437;
-  reg [31 : 0] v__h24003;
-  reg [31 : 0] v__h24158;
-  reg [31 : 0] v__h24328;
-  reg [31 : 0] v__h25846;
-  reg [31 : 0] v__h26950;
-  reg [31 : 0] v__h28072;
-  reg [31 : 0] v__h28555;
-  reg [31 : 0] v__h28770;
-  reg [31 : 0] v__h28959;
-  reg [31 : 0] v__h29141;
-  reg [31 : 0] v__h29339;
-  reg [31 : 0] v__h29524;
-  reg [31 : 0] v__h29709;
-  reg [31 : 0] v__h29901;
-  reg [31 : 0] v__h30090;
-  reg [31 : 0] v__h30278;
-  reg [31 : 0] v__h30434;
-  reg [31 : 0] v__h30592;
-  reg [31 : 0] v__h30755;
-  reg [31 : 0] v__h40738;
-  reg [31 : 0] v__h50441;
-  reg [31 : 0] v__h52050;
-  reg [31 : 0] v__h52832;
-  reg [31 : 0] v__h101572;
-  reg [31 : 0] v__h143329;
-  reg [31 : 0] v__h147912;
-  reg [31 : 0] v__h152395;
-  reg [31 : 0] v__h155125;
-  reg [31 : 0] v__h157037;
-  reg [31 : 0] v__h158969;
-  reg [31 : 0] v__h159116;
-  reg [31 : 0] v__h159268;
-  reg [31 : 0] v__h1099;
-  reg [31 : 0] v__h1570;
-  reg [31 : 0] v__h1759;
-  reg [31 : 0] v__h1960;
-  reg [31 : 0] v__h2215;
-  reg [31 : 0] v__h2400;
-  reg [31 : 0] v__h2585;
-  reg [31 : 0] v__h2777;
-  reg [31 : 0] v__h2966;
-  reg [31 : 0] v__h3154;
-  reg [31 : 0] v__h3332;
-  reg [31 : 0] v__h3500;
-  reg [31 : 0] v__h3680;
-  reg [31 : 0] v__h10176;
-  reg [31 : 0] v__h16354;
-  reg [31 : 0] v__h17980;
-  reg [31 : 0] v__h18762;
-  reg [31 : 0] v__h21431;
-  reg [31 : 0] v__h23997;
-  reg [31 : 0] v__h24152;
-  reg [31 : 0] v__h24322;
-  reg [31 : 0] v__h25840;
-  reg [31 : 0] v__h26944;
-  reg [31 : 0] v__h28066;
-  reg [31 : 0] v__h28549;
-  reg [31 : 0] v__h28764;
-  reg [31 : 0] v__h28953;
-  reg [31 : 0] v__h29135;
-  reg [31 : 0] v__h29333;
-  reg [31 : 0] v__h29518;
-  reg [31 : 0] v__h29703;
-  reg [31 : 0] v__h29895;
-  reg [31 : 0] v__h30084;
-  reg [31 : 0] v__h30272;
-  reg [31 : 0] v__h30428;
-  reg [31 : 0] v__h30586;
-  reg [31 : 0] v__h30749;
-  reg [31 : 0] v__h40732;
-  reg [31 : 0] v__h50435;
-  reg [31 : 0] v__h52044;
-  reg [31 : 0] v__h52826;
-  reg [31 : 0] v__h101566;
-  reg [31 : 0] v__h143323;
-  reg [31 : 0] v__h147906;
-  reg [31 : 0] v__h152389;
-  reg [31 : 0] v__h155119;
-  reg [31 : 0] v__h157031;
-  reg [31 : 0] v__h158963;
-  reg [31 : 0] v__h159110;
-  reg [31 : 0] v__h159262;
->>>>>>> upstream/master
   // synopsys translate_on
 
   // remaining internal signals
@@ -599,7 +497,6 @@ module mkFBox_Core(verbosity,
 	       IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d3230,
 	       IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d3555,
 	       IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d3624;
-<<<<<<< HEAD
   reg [7 : 0] CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q76,
 	      CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q77,
 	      CASE_guard2567_0b0_theResult___fst_exp0793_0b1_ETC__q74,
@@ -616,24 +513,6 @@ module mkFBox_Core(verbosity,
 	      CASE_guard5500_0b0_x5515_BITS_7_TO_0_0b1_x5515_ETC__q26,
 	      CASE_guard762_0b0_0_0b1_0_0b10_out_exp181_0b11_ETC__q13,
 	      CASE_guard762_0b0_0_0b1_theResult___exp178_0b1_ETC__q12,
-=======
-  reg [7 : 0] CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q74,
-	      CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q75,
-	      CASE_guard233_0b0_x248_BITS_7_TO_0_0b1_theResu_ETC__q14,
-	      CASE_guard233_0b0_x248_BITS_7_TO_0_0b1_x248_BI_ETC__q15,
-	      CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q76,
-	      CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q77,
-	      CASE_guard3519_0b0_theResult___fst_exp1567_0b1_ETC__q72,
-	      CASE_guard3519_0b0_theResult___fst_exp1567_0b1_ETC__q73,
-	      CASE_guard4784_0b0_theResult___fst_exp2881_0b1_ETC__q70,
-	      CASE_guard4784_0b0_theResult___fst_exp2881_0b1_ETC__q71,
-	      CASE_guard4915_0b0_0_0b1_0_0b10_out_exp5331_0b_ETC__q22,
-	      CASE_guard4915_0b0_0_0b1_theResult___exp5328_0_ETC__q23,
-	      CASE_guard5441_0b0_x5456_BITS_7_TO_0_0b1_theRe_ETC__q25,
-	      CASE_guard5441_0b0_x5456_BITS_7_TO_0_0b1_x5456_ETC__q26,
-	      CASE_guard703_0b0_0_0b1_0_0b10_out_exp122_0b11_ETC__q13,
-	      CASE_guard703_0b0_0_0b1_theResult___exp119_0b1_ETC__q12,
->>>>>>> upstream/master
 	      CASE_requestR_BITS_194_TO_192_0x1_254_0x2_IF_r_ETC__q2,
 	      CASE_requestR_BITS_194_TO_192_0x3_IF_guard4974_ETC__q24,
 	      IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2234,
@@ -682,7 +561,6 @@ module mkFBox_Core(verbosity,
 		IF_requestR_3_BITS_126_TO_116_842_EQ_2047_843__ETC___d3890,
 		IF_requestR_3_BITS_190_TO_180_689_EQ_0_700_AND_ETC___d3905,
 		IF_requestR_3_BITS_190_TO_180_689_EQ_0_700_AND_ETC___d3983,
-<<<<<<< HEAD
 		res___1__h159426,
 		res___1__h159864,
 		res___1__h159874,
@@ -737,62 +615,6 @@ module mkFBox_Core(verbosity,
 		x__h50581,
 		x__h52192,
 		x__h52972;
-=======
-		res___1__h159367,
-		res___1__h159805,
-		res___1__h159815,
-		res___1__h159834,
-		res___1__h28171,
-		res___1__h28407,
-		res___1__h28417,
-		res___1__h28436,
-		res__h100515,
-		res__h142355,
-		res__h146832,
-		res__h151415,
-		res__h154154,
-		res__h156884,
-		res__h158796,
-		res__h159850,
-		res__h160049,
-		res__h19532,
-		res__h19769,
-		res__h25279,
-		res__h26797,
-		res__h27901,
-		res__h28452,
-		x__h101653,
-		x__h10264,
-		x__h143414,
-		x__h147997,
-		x__h152476,
-		x__h155206,
-		x__h157118,
-		x__h159347,
-		x__h159973,
-		x__h16441,
-		x__h18069,
-		x__h18853,
-		x__h21522,
-		x__h24082,
-		x__h24237,
-		x__h24409,
-		x__h25927,
-		x__h27031,
-		x__h28151,
-		x__h30358,
-		x__h30514,
-		x__h30672,
-		x__h30837,
-		x__h3247,
-		x__h3418,
-		x__h3586,
-		x__h3768,
-		x__h40820,
-		x__h50522,
-		x__h52133,
-		x__h52913;
->>>>>>> upstream/master
   wire [56 : 0] IF_0_CONCAT_IF_IF_0b0_CONCAT_NOT_requestR_3_BI_ETC__q60,
 		IF_0_CONCAT_IF_IF_3074_MINUS_SEXT_IF_requestR__ETC__q97,
 		IF_0_CONCAT_IF_IF_3970_MINUS_SEXT_requestR_3_B_ETC__q65,
@@ -1864,13 +1686,12 @@ module mkFBox_Core(verbosity,
   assign WILL_FIRE_RL_doFCLASS_D = CAN_FIRE_RL_doFCLASS_D ;
 
   // rule RL_rl_get_fpu_result
-  assign CAN_FIRE_RL_rl_get_fpu_result =
-	     fpu$RDY_server_core_response_get && stateR == 2'd2 ;
-  assign WILL_FIRE_RL_rl_get_fpu_result = CAN_FIRE_RL_rl_get_fpu_result ;
+  assign CAN_FIRE_RL_rl_get_fpu_result = MUX_dw_result$wset_1__SEL_1 ;
+  assign WILL_FIRE_RL_rl_get_fpu_result = MUX_dw_result$wset_1__SEL_1 ;
 
   // rule RL_rl_drive_fpu_result
   assign CAN_FIRE_RL_rl_drive_fpu_result = stateR == 2'd3 ;
-  assign WILL_FIRE_RL_rl_drive_fpu_result = CAN_FIRE_RL_rl_drive_fpu_result ;
+  assign WILL_FIRE_RL_rl_drive_fpu_result = stateR == 2'd3 ;
 
   // rule RL_rl_reset_begin
   assign CAN_FIRE_RL_rl_reset_begin =
@@ -1878,6 +1699,8 @@ module mkFBox_Core(verbosity,
   assign WILL_FIRE_RL_rl_reset_begin = CAN_FIRE_RL_rl_reset_begin ;
 
   // inputs to muxes for submodule ports
+  assign MUX_dw_result$wset_1__SEL_1 =
+	     fpu$RDY_server_core_response_get && stateR == 2'd2 ;
   assign MUX_dw_result$wset_1__VAL_1 =
 	     { x__h160032, fpu$server_core_response_get[4:0] } ;
   assign MUX_fpu$server_core_request_put_1__VAL_1 =
@@ -2513,7 +2336,7 @@ module mkFBox_Core(verbosity,
 	     WILL_FIRE_RL_doFNMSUB_D ||
 	     WILL_FIRE_RL_doFDIV_D ||
 	     WILL_FIRE_RL_doFSQRT_D ;
-  assign fpu$EN_server_core_response_get = CAN_FIRE_RL_rl_get_fpu_result ;
+  assign fpu$EN_server_core_response_get = MUX_dw_result$wset_1__SEL_1 ;
   assign fpu$EN_server_reset_request_put = CAN_FIRE_RL_rl_reset_begin ;
   assign fpu$EN_server_reset_response_get = CAN_FIRE_RL_rl_reset_end ;
 
@@ -5135,11 +4958,7 @@ module mkFBox_Core(verbosity,
 	     (requestR[194:192] != 3'h1 && requestR[194:192] != 3'h2 &&
 	      requestR[194:192] != 3'h3 &&
 	      requestR[194:192] != 3'h4) ?
-<<<<<<< HEAD
 	       CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q77 :
-=======
-	       CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q75 :
->>>>>>> upstream/master
 	       IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2787 ;
   assign _theResult___fst_exp__h100086 =
 	     (_theResult___fst_exp__h99508 == 8'd255) ?
@@ -5540,11 +5359,7 @@ module mkFBox_Core(verbosity,
 	     (requestR[194:192] != 3'h1 && requestR[194:192] != 3'h2 &&
 	      requestR[194:192] != 3'h3 &&
 	      requestR[194:192] != 3'h4) ?
-<<<<<<< HEAD
 	       CASE_guard2567_0b0_theResult___fst_exp0793_0b1_ETC__q75 :
-=======
-	       CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q77 :
->>>>>>> upstream/master
 	       IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2718 ;
   assign _theResult___fst_exp__h91420 =
 	     (_theResult___fst_exp__h90793 == 8'd255) ?
@@ -6566,15 +6381,9 @@ module mkFBox_Core(verbosity,
 	     NOT_requestR_3_BITS_190_TO_180_689_EQ_2047_690_ETC___d3956 ?
 	       64'd1 :
 	       64'd0 ;
-<<<<<<< HEAD
   assign res__h159909 = requestR[191] ? 64'd2 : 64'd64 ;
   assign res__h160108 = { 32'hFFFFFFFF, fpu$server_core_response_get[36:5] } ;
   assign res__h19591 =
-=======
-  assign res__h159850 = requestR[191] ? 64'd2 : 64'd64 ;
-  assign res__h160049 = { 32'hFFFFFFFF, fpu$server_core_response_get[36:5] } ;
-  assign res__h19532 =
->>>>>>> upstream/master
 	     { 32'hFFFFFFFF,
 	       requestR_3_BITS_127_TO_96_6_EQ_0xFFFFFFFF_7_AN_ETC___d42 } ;
   assign res__h19828 =
@@ -6872,20 +6681,12 @@ module mkFBox_Core(verbosity,
 	       ((fpu$server_core_response_get[35:28] == 8'd255 &&
 		 fpu$server_core_response_get[27:5] != 23'd0) ?
 		  64'hFFFFFFFF7FC00000 :
-<<<<<<< HEAD
 		  res__h160108) :
-=======
-		  res__h160049) :
->>>>>>> upstream/master
 	       ((fpu$server_core_response_get[67:57] == 11'd2047 &&
 		 fpu$server_core_response_get[56:5] != 52'd0) ?
 		  64'h7FF8000000000000 :
 		  fpu$server_core_response_get[68:5]) ;
-<<<<<<< HEAD
   assign x__h16181 =
-=======
-  assign x__h16122 =
->>>>>>> upstream/master
 	     { 2'd0,
 	       NOT_requestR_3_BITS_159_TO_128_72_EQ_0_73_74_A_ETC___d830,
 	       requestR[159:128] != 32'd0 &&
@@ -8144,7 +7945,6 @@ module mkFBox_Core(verbosity,
 	      _theResult___exp__h82078;
     endcase
   end
-<<<<<<< HEAD
   always@(guard__h82567 or
 	  _theResult___fst_exp__h90793 or _theResult___exp__h91319)
   begin
@@ -8198,37 +7998,21 @@ module mkFBox_Core(verbosity,
   end
   always@(guard__h91431 or
 	  _theResult___fst_exp__h99508 or _theResult___exp__h99985)
-=======
-  always@(guard__h91372 or
-	  _theResult___fst_exp__h99449 or _theResult___exp__h99926)
->>>>>>> upstream/master
   begin
     case (guard__h91431)
       2'b0:
-<<<<<<< HEAD
 	  CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q76 =
 	      _theResult___fst_exp__h99508;
       2'b01, 2'b10, 2'b11:
 	  CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q76 =
 	      _theResult___exp__h99985;
-=======
-	  CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q74 =
-	      _theResult___fst_exp__h99449;
-      2'b01, 2'b10, 2'b11:
-	  CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q74 =
-	      _theResult___exp__h99926;
->>>>>>> upstream/master
     endcase
   end
   always@(requestR or
 	  _theResult___fst_exp__h99508 or
 	  IF_IF_IF_requestR_3_BITS_190_TO_180_689_EQ_0_7_ETC___d2783 or
 	  IF_IF_IF_requestR_3_BITS_190_TO_180_689_EQ_0_7_ETC___d2781 or
-<<<<<<< HEAD
 	  CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q76)
-=======
-	  CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q74)
->>>>>>> upstream/master
   begin
     case (requestR[194:192])
       3'h1:
@@ -8242,11 +8026,7 @@ module mkFBox_Core(verbosity,
 	      IF_IF_IF_requestR_3_BITS_190_TO_180_689_EQ_0_7_ETC___d2781;
       3'h4:
 	  IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2787 =
-<<<<<<< HEAD
 	      CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q76;
-=======
-	      CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q74;
->>>>>>> upstream/master
       default: IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2787 =
 		   8'd0;
     endcase
@@ -8257,7 +8037,6 @@ module mkFBox_Core(verbosity,
   begin
     case (guard__h91431)
       2'b0, 2'b01:
-<<<<<<< HEAD
 	  CASE_guard1431_0b0_theResult___fst_exp9508_0b1_ETC__q77 =
 	      _theResult___fst_exp__h99508;
       2'b10:
@@ -8269,70 +8048,6 @@ module mkFBox_Core(verbosity,
     endcase
   end
   always@(guard__h64843 or sfdin__h72934 or _theResult___sfd__h73467)
-=======
-	  CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q75 =
-	      _theResult___fst_exp__h99449;
-      2'b10:
-	  CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q75 =
-	      out_exp__h99929;
-      2'b11:
-	  CASE_guard1372_0b0_theResult___fst_exp9449_0b1_ETC__q75 =
-	      _theResult___exp__h99926;
-    endcase
-  end
-  always@(guard__h82508 or
-	  _theResult___fst_exp__h90734 or _theResult___exp__h91260)
-  begin
-    case (guard__h82508)
-      2'b0:
-	  CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q76 =
-	      _theResult___fst_exp__h90734;
-      2'b01, 2'b10, 2'b11:
-	  CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q76 =
-	      _theResult___exp__h91260;
-    endcase
-  end
-  always@(requestR or
-	  _theResult___fst_exp__h90734 or
-	  IF_IF_IF_IF_3970_MINUS_SEXT_requestR_3_BITS_19_ETC___d2714 or
-	  IF_IF_IF_IF_3970_MINUS_SEXT_requestR_3_BITS_19_ETC___d2712 or
-	  CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q76)
-  begin
-    case (requestR[194:192])
-      3'h1:
-	  IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2718 =
-	      _theResult___fst_exp__h90734;
-      3'h2:
-	  IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2718 =
-	      IF_IF_IF_IF_3970_MINUS_SEXT_requestR_3_BITS_19_ETC___d2714;
-      3'h3:
-	  IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2718 =
-	      IF_IF_IF_IF_3970_MINUS_SEXT_requestR_3_BITS_19_ETC___d2712;
-      3'h4:
-	  IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2718 =
-	      CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q76;
-      default: IF_requestR_3_BITS_194_TO_192_4_EQ_0x4_9_THEN__ETC___d2718 =
-		   8'd0;
-    endcase
-  end
-  always@(guard__h82508 or
-	  _theResult___fst_exp__h90734 or
-	  out_exp__h91263 or _theResult___exp__h91260)
-  begin
-    case (guard__h82508)
-      2'b0, 2'b01:
-	  CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q77 =
-	      _theResult___fst_exp__h90734;
-      2'b10:
-	  CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q77 =
-	      out_exp__h91263;
-      2'b11:
-	  CASE_guard2508_0b0_theResult___fst_exp0734_0b1_ETC__q77 =
-	      _theResult___exp__h91260;
-    endcase
-  end
-  always@(guard__h64784 or sfdin__h72875 or _theResult___sfd__h73408)
->>>>>>> upstream/master
   begin
     case (guard__h64843)
       2'b0:

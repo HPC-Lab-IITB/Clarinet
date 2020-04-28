@@ -3272,15 +3272,9 @@ module mkFabric_2x3(CLK,
 	     WILL_FIRE_RL_fabric_rl_wr_xaction_master_to_slave_data &&
 	     fabric_v_f_wd_tasks_0$D_OUT[9:8] == 2'd2 ;
   assign MUX_fabric_v_f_rd_mis_0$enq_1__VAL_1 =
-<<<<<<< HEAD
-	     { 1'd0, fabric_xactors_from_masters_0_f_rd_addr$D_OUT[28:21] } ;
-  assign MUX_fabric_v_f_rd_mis_0$enq_1__VAL_2 =
-	     { 1'd1, fabric_xactors_from_masters_1_f_rd_addr$D_OUT[28:21] } ;
-=======
 	     { 2'd0, fabric_xactors_from_masters_0_f_rd_addr$D_OUT[28:21] } ;
   assign MUX_fabric_v_f_rd_mis_0$enq_1__VAL_2 =
 	     { 2'd1, fabric_xactors_from_masters_1_f_rd_addr$D_OUT[28:21] } ;
->>>>>>> upstream/master
   assign MUX_fabric_v_f_wd_tasks_0$enq_1__VAL_1 =
 	     { 2'd0, fabric_xactors_from_masters_0_f_wr_addr$D_OUT[28:21] } ;
   assign MUX_fabric_v_f_wd_tasks_0$enq_1__VAL_2 =
