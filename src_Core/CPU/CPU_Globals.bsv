@@ -507,6 +507,7 @@ instance FShow #(Data_Stage1_to_Stage2);
 			   x.addr, x.val1, x.val2);
 `ifdef ISA_F
       fmt = fmt + $format ("\n");
+      fmt = fmt + $format ("            rd_in_fpr: ", fshow (x.rd_in_fpr));
       fmt = fmt + $format ("            fval1:%h  fval2:%h  fval3:%h}",
 			   x.fval1, x.fval2, x.fval3);
 `ifdef POSIT
@@ -598,18 +599,20 @@ instance FShow #(Data_Stage2_to_Stage3);
       fmt = fmt + $format ("        rd_valid:", fshow (x.rd_valid));
 
 `ifdef ISA_F
-`ifdef POSIT
-      if (x.no_rd_upd)
-         fmt = fmt + $format ("  Output to Quire. No Rd update.");
-      if (x.rd_in_prf)
-         fmt = fmt + $format ("  prd:%0d  rd_val:%h\n", x.rd, x.prd_val);
-`endif
       if (x.upd_flags)
          fmt = fmt + $format ("  fflags: %05b", fshow (x.fpr_flags));
 
       if (x.rd_in_fpr)
          fmt = fmt + $format ("  frd:%0d  rd_val:%h\n", x.rd, x.frd_val);
       else
+`ifdef POSIT
+      if (x.rd_in_prf)
+         if (x.no_rd_upd)
+            fmt = fmt + $format ("  Output to Quire. No Rd update.");
+         else
+            fmt = fmt + $format ("  prd:%0d  rd_val:%h\n", x.rd, x.prd_val);
+      else
+`endif
 `endif
          fmt = fmt + $format ("  grd:%0d  rd_val:%h\n", x.rd, x.rd_val);
       return fmt;

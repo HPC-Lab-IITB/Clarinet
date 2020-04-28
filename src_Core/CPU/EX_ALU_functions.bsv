@@ -1007,11 +1007,10 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
    alu_outputs.fval2     = inputs.frs2_val;
    alu_outputs.fval3     = inputs.frs3_val;
 
-   alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2);
-
 `ifdef POSIT
    alu_outputs.no_rd_upd = fv_is_destn_in_quire (opcode, funct7);
-   alu_outputs.rd_in_prf = fv_is_rd_in_PRF (opcode, funct7);
+   alu_outputs.rd_in_prf = (  fv_is_rd_in_PRF (opcode, funct7)
+                           || fv_is_destn_in_quire (opcode, funct7));
    alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2) && 
                            !fv_is_rd_in_PRF (opcode, funct7);
 `else

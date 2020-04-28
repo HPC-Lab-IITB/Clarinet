@@ -261,6 +261,9 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 					             rs_frm_fpr      : ?,
 					             val1_frm_gpr    : ?,
 `ifdef POSIT
+						     pval1           : ?,
+						     pval2           : ?,
+						     rd_in_prf       : ?,
                                                      no_rd_upd       : ?,
 `endif
 						     rounding_mode   : ?,

@@ -392,6 +392,9 @@ module mkCPU (CPU_IFC);
       $display ("        Bypass  to Stage1: ", fshow (stage3.out.bypass));
 `ifdef ISA_F
       $display ("        FBypass to Stage1: ", fshow (stage3.out.fbypass));
+`ifdef POSIT
+      $display ("        PBypass to Stage1: ", fshow (stage3.out.pbypass));
+`endif
 `endif
       $display ("    Stage2: pc 0x%08h instr 0x%08h priv %0d",
 		stage2.out.data_to_stage3.pc,
@@ -401,6 +404,9 @@ module mkCPU (CPU_IFC);
       $display ("        Bypass  to Stage1: ", fshow (stage2.out.bypass));
 `ifdef ISA_F
       $display ("        FBypass to Stage1: ", fshow (stage2.out.fbypass));
+`ifdef POSIT
+      $display ("        PBypass to Stage1: ", fshow (stage2.out.pbypass));
+`endif
 `endif
 
       $display ("    Stage1: pc 0x%08h instr 0x%08h priv %0d",

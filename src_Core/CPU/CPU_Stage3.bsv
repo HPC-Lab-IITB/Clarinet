@@ -110,7 +110,6 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 			       // WordFL        WordFL
 			       rd_val:       rg_stage3.frd_val
 			       };
-`endif
 
 `ifdef POSIT
    let pbypass_base = PBypass {bypass_state: BYPASS_RD_NONE,
@@ -118,6 +117,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 			       // WordPL        WordPL
 			       rd_val:       rg_stage3.prd_val
 			       };
+`endif
 `endif
 
    rule rl_reset;
@@ -146,15 +146,16 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
       end
 
 `ifdef POSIT
-      else if ((rg_stage3.rd_in_prf) || (rg_stage3.no_rd_upd)) begin
-         // It is important to make sure that the GPR bypass does
-         // NOT get set by default for a quire operation
+      else if (rg_stage3.rd_in_prf) begin
          bypass.bypass_state = BYPASS_RD_NONE;
          fbypass.bypass_state = BYPASS_RD_NONE;
 
-         if ((rg_stage3.rd_in_prf) && (!rg_stage3.no_rd_upd)) 
+         if (!rg_stage3.no_rd_upd) 
             pbypass.bypass_state = (rg_full && rg_stage3.rd_valid) ? BYPASS_RD_RDVAL
                                                                    : BYPASS_RD_NONE;
+         // this posit instruction only updates the quire
+         else
+            pbypass.bypass_state = BYPASS_RD_NONE;
       end
 `endif
 
@@ -209,40 +210,40 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 	 if (rg_stage3.rd_valid) begin
 `ifdef ISA_F
             // Write to FPR
-            if (rg_stage3.rd_in_fpr)
+            if (rg_stage3.rd_in_fpr) begin
                fpr_regfile.write_rd (rg_stage3.rd, rg_stage3.frd_val);
+	       if (verbosity > 1)
+                  $display ("    S3.fa_deq: write FRd 0x%0h, rd_val 0x%0h",
+                            rg_stage3.rd, rg_stage3.frd_val);
+            end
 
 `ifdef POSIT
             // Write to PRF
-            else if ((rg_stage3.rd_in_prf) || (rg_stage3.no_rd_upd))
+            else if (rg_stage3.rd_in_prf) begin
                // Important that GPR write is not triggered by
                // default for quire operations
-               if ((rg_stage3.rd_in_prf) && (!rg_stage3.no_rd_upd))
+               if (!rg_stage3.no_rd_upd) begin
                   prf_regfile.write_rd (rg_stage3.rd, rg_stage3.prd_val);
+	          if (verbosity > 1)
+                     $display ("    S3.fa_deq: write PRd 0x%0h, rd_val 0x%0h",
+                               rg_stage3.rd, rg_stage3.prd_val);
+               end
+            end
 `endif
-            else
+            else begin
                // Write to GPR
                gpr_regfile.write_rd (rg_stage3.rd, rg_stage3.rd_val);
+	       if (verbosity > 1)
+                  $display ("    S3.fa_deq: write GRd 0x%0h, rd_val 0x%0h",
+                            rg_stage3.rd, rg_stage3.rd_val);
+            end
 `else
             // Write to GPR in a non-FD system
             gpr_regfile.write_rd (rg_stage3.rd, rg_stage3.rd_val);
-`endif
-
 	    if (verbosity > 1)
-`ifdef ISA_F
-               if (rg_stage3.rd_in_fpr)
-                  $display ("    S3.fa_deq: write FRd 0x%0h, rd_val 0x%0h",
-                            rg_stage3.rd, rg_stage3.frd_val);
-`ifdef POSIT
-               else if ((rg_stage3.rd_in_prf) || (rg_stage3.no_rd_upd))
-                  if ((rg_stage3.rd_in_prf) && (!rg_stage3.no_rd_upd))
-                     $display ("    S3.fa_deq: write PRd 0x%0h, rd_val 0x%0h",
-                               rg_stage3.rd, rg_stage3.prd_val);
-`endif
-               else
-`endif
                $display ("    S3.fa_deq: write GRd 0x%0h, rd_val 0x%0h",
                          rg_stage3.rd, rg_stage3.rd_val);
+`endif
 
 `ifdef ISA_F
             // Update FCSR.fflags
