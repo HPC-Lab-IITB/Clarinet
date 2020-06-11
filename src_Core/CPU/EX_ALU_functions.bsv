@@ -1012,7 +1012,11 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
    alu_outputs.rd_in_prf = (  fv_is_rd_in_PRF (opcode, funct7)
                            || fv_is_destn_in_quire (opcode, funct7));
    alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2) && 
-                           !fv_is_rd_in_PRF (opcode, funct7);
+                           !alu_outputs.rd_in_prf;
+
+   // Just copy the prs*_val values from inputs to outputs
+   alu_outputs.pval1     = inputs.prs1_val;
+   alu_outputs.pval2     = inputs.prs2_val;
 `else
    alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2);
 `endif
