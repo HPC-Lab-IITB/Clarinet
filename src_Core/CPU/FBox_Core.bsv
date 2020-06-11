@@ -297,7 +297,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    // New opcodes for posit computation
    let isFCVT_S_P    = (opc == op_FP) && (f7 == f7_FCVT_S_P) && (rs2 == rs2_P);
    let isFCVT_P_S    = (opc == op_FP) && (f7 == f7_FCVT_P_S) && (rs2 == rs2_S);
-   let isFCVT_R_P    = (opc == op_FP) && (f7 == f7_FCVT_R_P) && (rs2 == rs2_R);
+   let isFCVT_R_P    = (opc == op_FP) && (f7 == f7_FCVT_R_P) && (rs2 == rs2_P);
    let isFCVT_P_R    = (opc == op_FP) && (f7 == f7_FCVT_P_R) && (rs2 == rs2_R);
    let isFMA_P       = (opc == op_FP) && (f7 == f7_FMA_P);
 `endif
