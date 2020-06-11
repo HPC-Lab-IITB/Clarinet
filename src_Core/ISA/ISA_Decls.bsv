@@ -940,7 +940,7 @@ function Bool fv_is_fp_instr_legal (
           || ((f7 == f7_FCVT_S_P) && (rs2 == rs2_P))
           || ((f7 == f7_FCVT_P_S) && (rs2 == rs2_S))
           || ((f7 == f7_FCVT_P_R) && (rs2 == rs2_R))
-          || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_R))
+          || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_P))
 `endif
          ) return True;
       else return False;
