@@ -1,14 +1,14 @@
 // Copyright (c) 2016-2019 Bluespec, Inc. All Rights Reserved
 
-package PRF_RegFile;
+package PPR_RegFile;
 
 // ================================================================
-// PRF (Floating Point Register) Register File
+// PPR (Floating Point Register) Register File
 
 // ================================================================
 // Exports
 
-export PRF_RegFile_IFC (..), mkPRF_RegFile;
+export PPR_RegFile_IFC (..), mkPPR_RegFile;
 
 // ================================================================
 // BSV library imports
@@ -30,24 +30,24 @@ import ISA_Decls :: *;
 
 // ================================================================
 
-interface PRF_RegFile_IFC;
+interface PPR_RegFile_IFC;
    // Reset
    interface Server #(Token, Token) server_reset;
 
-   // PRF read
+   // PPR read
    (* always_ready *)
    method WordPL read_rs1 (RegName rs1);
    (* always_ready *)
    method WordPL read_rs2 (RegName rs2);
 
-   // PRF write
+   // PPR write
    (* always_ready *)
    method Action write_rd (RegName rd, WordPL rd_val);
 
 endinterface
 
 // ================================================================
-// Major states of mkPRF_RegFile module
+// Major states of mkPPR_RegFile module
 
 typedef enum { RF_RESET_START, RF_RESETTING, RF_RUNNING } RF_State
 deriving (Eq, Bits, FShow);
@@ -55,7 +55,7 @@ deriving (Eq, Bits, FShow);
 // ================================================================
 
 (* synthesize *)
-module mkPRF_RegFile (PRF_RegFile_IFC);
+module mkPPR_RegFile (PPR_RegFile_IFC);
 
    Reg #(RF_State) rg_state    <- mkReg (RF_RESET_START);
 
@@ -63,12 +63,12 @@ module mkPRF_RegFile (PRF_RegFile_IFC);
    FIFOF #(Token) f_reset_rsps <- mkFIFOF;
 
    // Posit Point Registers
-   // Unlike GPRs, all registers in the PRF are regular registers (no r0)
+   // Unlike GPRs, all registers in the PPR are regular registers (no r0)
    RegFile #(RegName, WordPL) regfile <- mkRegFileFull;
 
    // ----------------------------------------------------------------
    // Reset.
-   // This loop initializes all PRFs to 0.
+   // This loop initializes all PPRs to 0.
    // The spec does not require this, but it's useful for debugging
    // and tandem verification
 
@@ -108,7 +108,7 @@ module mkPRF_RegFile (PRF_RegFile_IFC);
       endinterface
    endinterface
 
-   // PRF read
+   // PPR read
    method WordPL read_rs1 (RegName rs1);
       return (regfile.sub (rs1));
    endmethod
@@ -117,7 +117,7 @@ module mkPRF_RegFile (PRF_RegFile_IFC);
       return (regfile.sub (rs2));
    endmethod
 
-   // PRF write
+   // PPR write
    method Action write_rd (RegName rd, WordPL rd_val);
       regfile.upd (rd, rd_val);
    endmethod
