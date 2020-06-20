@@ -104,11 +104,12 @@ typedef struct {
    WordFL     fval2;          // OP_Stage2_FD: arg2
    WordFL     fval3;          // OP_Stage2_FD: arg3
    Bool       rd_in_fpr;      // result to be written to fpr
-   Bool       rs_frm_fpr;     // src register is in fpr (for stores)
+   Bool       rs_frm_fpr;     // src register is in fpr (for FP stores)
    Bool       val1_frm_gpr;   // first operand is in gpr (for some FP instrns)
 `ifdef POSIT
-   Bool       rd_in_prf;      // For instructions where the destn
+   Bool       rd_in_ppr;      // For instructions where the destn
                               // is in the Posit RF
+   Bool       rs_frm_ppr;     // src register is in ppr (for posit stores)
    Bool       no_rd_upd;      // For instructions where the destn
                               // is quire, there will be no update
                               // of architectural state
@@ -149,7 +150,8 @@ ALU_Outputs alu_outputs_base
 	       val1_frm_gpr: False,
 `ifdef POSIT
                no_rd_upd   : False,
-	       rd_in_prf   : False,
+	       rs_frm_ppr  : False,
+	       rd_in_ppr   : False,
 	       pval1       : ?,
 	       pval2       : ?,
 `endif
@@ -709,7 +711,7 @@ function ALU_Outputs fv_LD (ALU_Inputs inputs);
    // FP loads are not legal unless the MSTATUS.FS bit is set
    Bool legal_FP_LD = True;
 `ifdef ISA_F
-   if (opcode == op_LOAD_FP)
+   if ((opcode == op_LOAD_FP) || (opcode == op_LOAD_P))
       legal_FP_LD = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
 `endif
 
@@ -723,6 +725,9 @@ function ALU_Outputs fv_LD (ALU_Inputs inputs);
 `ifdef ISA_F
    // note that the destination register for this load is in the FPR
    alu_outputs.rd_in_fpr = (opcode == op_LOAD_FP);
+`ifdef POSIT
+   alu_outputs.rd_in_ppr = (opcode == op_LOAD_P);
+`endif
 `endif
 
 `ifdef INCLUDE_TANDEM_VERIF
@@ -767,6 +772,9 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
 `endif
 `ifdef ISA_F
 		    || (funct3 == f3_FSW)
+`ifdef POSIT
+		    || (funct3 == f3_PSW)
+`endif
 `endif
 `ifdef ISA_D
 		    || (funct3 == f3_FSD)
@@ -784,6 +792,14 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
       // note that the source data register for this store is in the FPR
       alu_outputs.rs_frm_fpr = True;
    end
+`ifdef POSIT
+   else if (opcode == op_STORE_P) begin
+      legal_FP_ST = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
+
+      // note that the source data register for this store is in the FPR
+      alu_outputs.rs_frm_ppr = True;
+   end
+`endif
 `endif
 
    alu_outputs.control   = ((legal_ST && legal_FP_ST) ? CONTROL_STRAIGHT
@@ -1009,10 +1025,10 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
 
 `ifdef POSIT
    alu_outputs.no_rd_upd = fv_is_destn_in_quire (opcode, funct7);
-   alu_outputs.rd_in_prf = (  fv_is_rd_in_PRF (opcode, funct7)
+   alu_outputs.rd_in_ppr = (  fv_is_rd_in_PPR (opcode, funct7)
                            || fv_is_destn_in_quire (opcode, funct7));
    alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2) && 
-                           !alu_outputs.rd_in_prf;
+                           !alu_outputs.rd_in_ppr;
 
    // Just copy the prs*_val values from inputs to outputs
    alu_outputs.pval1     = inputs.prs1_val;
@@ -1203,6 +1219,14 @@ function ALU_Outputs fv_ALU (ALU_Inputs inputs);
 
    else if (   (inputs.decoded_instr.opcode == op_STORE_FP))
       alu_outputs = fv_ST (inputs);
+
+`ifdef POSIT
+   else if (   (inputs.decoded_instr.opcode == op_LOAD_P))
+      alu_outputs = fv_LD (inputs);
+
+   else if (   (inputs.decoded_instr.opcode == op_STORE_P))
+      alu_outputs = fv_ST (inputs);
+`endif
 
    else if (   (inputs.decoded_instr.opcode == op_FP)
             || (inputs.decoded_instr.opcode == op_FMADD)

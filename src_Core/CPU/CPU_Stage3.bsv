@@ -40,7 +40,7 @@ import GPR_RegFile :: *;
 `ifdef ISA_F
 import FPR_RegFile :: *;
 `ifdef POSIT
-import PRF_RegFile :: *;
+import PPR_RegFile :: *;
 `endif
 `endif
 import CSR_RegFile :: *;
@@ -83,7 +83,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 `ifdef ISA_F
 		      FPR_RegFile_IFC  fpr_regfile,
 `ifdef POSIT
-                      PRF_RegFile_IFC  prf_regfile,
+                      PPR_RegFile_IFC  ppr_regfile,
 `endif
 `endif
 		      CSR_RegFile_IFC  csr_regfile)
@@ -146,7 +146,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
       end
 
 `ifdef POSIT
-      else if (rg_stage3.rd_in_prf) begin
+      else if (rg_stage3.rd_in_ppr) begin
          bypass.bypass_state = BYPASS_RD_NONE;
          fbypass.bypass_state = BYPASS_RD_NONE;
 
@@ -218,12 +218,12 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
             end
 
 `ifdef POSIT
-            // Write to PRF
-            else if (rg_stage3.rd_in_prf) begin
+            // Write to PPR
+            else if (rg_stage3.rd_in_ppr) begin
                // Important that GPR write is not triggered by
                // default for quire operations
                if (!rg_stage3.no_rd_upd) begin
-                  prf_regfile.write_rd (rg_stage3.rd, rg_stage3.prd_val);
+                  ppr_regfile.write_rd (rg_stage3.rd, rg_stage3.prd_val);
 	          if (verbosity > 1)
                      $display ("    S3.fa_deq: write PRd 0x%0h, rd_val 0x%0h",
                                rg_stage3.rd, rg_stage3.prd_val);

@@ -231,7 +231,7 @@ endfunction
 // Returns '(busy, val)'
 // 'busy' means that the RegName is valid and matches, but the value is not available yet
 
-function Tuple2 #(Bool, WordPL) fn_prf_bypass (PBypass bypass, RegName rd, WordPL rd_val);
+function Tuple2 #(Bool, WordPL) fn_ppr_bypass (PBypass bypass, RegName rd, WordPL rd_val);
    Bool busy = ((bypass.bypass_state == BYPASS_RD) && (bypass.rd == rd));
    WordPL val= (  ((bypass.bypass_state == BYPASS_RD_RDVAL) && (bypass.rd == rd))
 		? bypass.rd_val
@@ -486,7 +486,8 @@ typedef struct {
    Bool       val1_frm_gpr;      // The val1 is from GPR for a FP instruction
 `ifdef POSIT
    Bool       no_rd_upd;         // No rd to be updated as result goes to quire
-   Bool       rd_in_prf;         // The rd should update into PRF
+   Bool       rs_frm_ppr;        // The rs is from PPR (Posit stores)
+   Bool       rd_in_ppr;         // The rd should update into PRF
    WordPL     pval1;             // OP_Stage2_P: arg1
    WordPL     pval2;             // OP_Stage2_P: arg2
 `endif
@@ -513,7 +514,7 @@ instance FShow #(Data_Stage1_to_Stage2);
 `ifdef POSIT
       fmt = fmt + $format ("\n");
       fmt = fmt + $format ("            no_rd_upd: ", fshow (x.no_rd_upd));
-      fmt = fmt + $format ("            rd_in_prf: ", fshow (x.rd_in_prf));
+      fmt = fmt + $format ("            rd_in_ppr: ", fshow (x.rd_in_ppr));
       fmt = fmt + $format ("            pval1:%h  pval2:%h }",
 			   x.pval1, x.pval2);
 `endif
@@ -582,7 +583,7 @@ typedef struct {
    WordFL    frd_val;
 `ifdef POSIT
    Bool      no_rd_upd;
-   Bool      rd_in_prf;         // The rd should update into PRF
+   Bool      rd_in_ppr;         // The rd should update into PRF
    WordPL    prd_val;
 `endif
 `endif
@@ -606,7 +607,7 @@ instance FShow #(Data_Stage2_to_Stage3);
          fmt = fmt + $format ("  frd:%0d  rd_val:%h\n", x.rd, x.frd_val);
       else
 `ifdef POSIT
-      if (x.rd_in_prf)
+      if (x.rd_in_ppr)
          if (x.no_rd_upd)
             fmt = fmt + $format ("  Output to Quire. No Rd update.");
          else

@@ -37,7 +37,7 @@ import GPR_RegFile      :: *;
 `ifdef ISA_F
 import FPR_RegFile      :: *;
 `ifdef POSIT
-import PRF_RegFile      :: *;
+import PPR_RegFile      :: *;
 `endif
 `endif
 import CSR_RegFile      :: *;
@@ -82,7 +82,7 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 		      FBypass          fbypass_from_stage2,
 		      FBypass          fbypass_from_stage3,
 `ifdef POSIT
-                      PRF_RegFile_IFC  prf_regfile,
+                      PPR_RegFile_IFC  ppr_regfile,
 		      PBypass          pbypass_from_stage2,
 		      PBypass          pbypass_from_stage3,
 `endif
@@ -157,16 +157,16 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 
 `ifdef POSIT
    // Posit Register rs1 read and bypass
-   let prs1_val = prf_regfile.read_rs1 (rs1);
-   match { .pbusy1a, .prs1a } = fn_prf_bypass (pbypass_from_stage3, rs1, prs1_val);
-   match { .pbusy1b, .prs1b } = fn_prf_bypass (pbypass_from_stage2, rs1, prs1a);
+   let prs1_val = ppr_regfile.read_rs1 (rs1);
+   match { .pbusy1a, .prs1a } = fn_ppr_bypass (pbypass_from_stage3, rs1, prs1_val);
+   match { .pbusy1b, .prs1b } = fn_ppr_bypass (pbypass_from_stage2, rs1, prs1a);
    Bool prs1_busy = (pbusy1a || pbusy1b);
    WordPL prs1_val_bypassed = prs1b;
 
    // FP Register rs2 read and bypass
-   let prs2_val = prf_regfile.read_rs2 (rs2);
-   match { .pbusy2a, .prs2a } = fn_prf_bypass (pbypass_from_stage3, rs2, prs2_val);
-   match { .pbusy2b, .prs2b } = fn_prf_bypass (pbypass_from_stage2, rs2, prs2a);
+   let prs2_val = ppr_regfile.read_rs2 (rs2);
+   match { .pbusy2a, .prs2a } = fn_ppr_bypass (pbypass_from_stage3, rs2, prs2_val);
+   match { .pbusy2b, .prs2b } = fn_ppr_bypass (pbypass_from_stage2, rs2, prs2a);
    Bool prs2_busy = (pbusy2a || pbusy2b);
    WordPL prs2_val_bypassed = prs2b;
 `endif
@@ -218,7 +218,8 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 					       val1_frm_gpr  : alu_outputs.val1_frm_gpr,
 `ifdef POSIT
                                                no_rd_upd     : alu_outputs.no_rd_upd,
-					       rd_in_prf     : alu_outputs.rd_in_prf,
+					       rs_frm_ppr    : alu_outputs.rs_frm_ppr,
+					       rd_in_ppr     : alu_outputs.rd_in_ppr,
 					       pval1         : alu_outputs.pval1,
 					       pval2         : alu_outputs.pval2,
 `endif
@@ -263,7 +264,8 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 `ifdef POSIT
 						     pval1           : ?,
 						     pval2           : ?,
-						     rd_in_prf       : ?,
+					             rs_frm_ppr      : ?,
+						     rd_in_ppr       : ?,
                                                      no_rd_upd       : ?,
 `endif
 						     rounding_mode   : ?,
@@ -288,7 +290,7 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 	 output_stage1.ostatus = OSTATUS_BUSY;
       end
 `ifdef POSIT
-      // Stall if bypass pending for PRF rs1, rs2 or rs3
+      // Stall if bypass pending for PPR rs1, rs2 or rs3
       else if (prs1_busy || prs2_busy) begin
 	 output_stage1.ostatus = OSTATUS_BUSY;
       end

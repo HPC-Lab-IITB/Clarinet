@@ -286,6 +286,14 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
                data_to_stage3.frd_val = truncate (dcache.word64);
 `endif
             end
+`ifdef POSIT
+            // A PPR load
+            else if (rg_stage2.rd_in_ppr) begin
+               // Only PLW is a legal instruction
+               data_to_stage3.prd_val = truncate (dcache.word64);
+            end
+            data_to_stage3.rd_in_ppr = rg_stage2.rd_in_ppr;
+`endif
 `endif
             // GPR loads
 	    data_to_stage3.rd_val   = result;
@@ -294,6 +302,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 	    let bypass = bypass_base;
 `ifdef ISA_F
 	    let fbypass = fbypass_base;
+`ifdef POSIT
+	    let pbypass = pbypass_base;
+`endif
 `endif
 
 	    if (ostatus != OSTATUS_NONPIPE) begin
@@ -311,6 +322,21 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 		  // (the bypassing is effectively delayed until the next stage).
 		  fbypass.bypass_state = BYPASS_RD;
                end
+`ifdef POSIT
+               // Bypassing PPR value.
+               else if (rg_stage2.rd_in_ppr) begin
+		  // Choose one of the following two options
+
+		  // Option 1: longer critical path, since the data is bypassed back into previous stage.
+		  // We use data_to_stage3.rd_val since nanboxing has been done.
+		  // pbypass.bypass_state = ((ostatus == OSTATUS_PIPE) ? BYPASS_RD_RDVAL : BYPASS_RD);
+		  // pbypass.rd_val       = data_to_stage3.prd_val;
+
+		  // Option 2: shorter critical path, since the data is not bypassed into previous stage,
+		  // (the bypassing is effectively delayed until the next stage).
+		  pbypass.bypass_state = BYPASS_RD;
+               end
+`endif
 `endif
 
                // Bypassing GPR values
@@ -614,6 +640,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `else
             Bit# (64) wdata_from_fpr = zeroExtend (x.fval2);
 `endif
+`ifdef POSIT
+            Bit# (64) wdata_from_ppr = zeroExtend (x.pval2);
+`endif
 `endif
 	    dcache.req (cache_op,
 			instr_funct3 (x.instr),
@@ -622,7 +651,13 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `endif
 			x.addr,
 `ifdef ISA_F
+`ifdef POSIT
+			(x.rs_frm_ppr ? wdata_from_ppr 
+                                      : x.rs_frm_fpr ? wdata_from_fpr
+                                                     : wdata_from_gpr),
+`else
 			(x.rs_frm_fpr ? wdata_from_fpr : wdata_from_gpr),
+`endif
 `else
 			wdata_from_gpr,
 `endif

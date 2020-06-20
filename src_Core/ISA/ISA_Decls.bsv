@@ -696,6 +696,13 @@ Bit #(3) f3_FSD         = 3'b011;
 Bit #(3) f3_FLW         = 3'b010;
 Bit #(3) f3_FLD         = 3'b011;
 
+`ifdef POSIT
+// Posit point Load-Store
+Opcode   op_LOAD_P      = 7'b00_010_11;
+Opcode   op_STORE_P     = 7'b01_010_11;
+Bit #(3) f3_PSW         = 3'b010;
+`endif
+
 // Fused FP Multiply Add/Sub instructions
 Opcode   op_FMADD       = 7'b10_00_011;
 Opcode   op_FMSUB       = 7'b10_00_111;
@@ -706,7 +713,10 @@ Opcode   op_FNMADD      = 7'b10_01_111;
 Opcode   op_FP          = 7'b10_10_011;
 
 `ifdef POSIT
-Bit #(7) f7_FMA_P       = 7'h1A; // Quills: Fused-Multiply-Accumulate
+Bit #(7) f7_FMA_P       = 7'h32; // Quills: Fused-Multiply-Accumulate
+Bit #(7) f7_FMS_P       = 7'h36; // Quills: Fused-Multiply-Subtract
+Bit #(7) f7_FDA_P       = 7'h3A; // Quills: Fused-Divide-Accumulate
+Bit #(7) f7_FDS_P       = 7'h3E; // Quills: Fused-Divide-Subtract
 `endif
 Bit #(7) f7_FADD_D      = 7'h1 ;
 Bit #(7) f7_FSUB_D      = 7'h5 ;
@@ -741,10 +751,10 @@ Bit #(7) f7_FCVT_S_LU   = 7'h68;
 Bit #(7) f7_FCVT_S_D    = 7'h20;
 Bit #(7) f7_FCVT_D_S    = 7'h21;
 `ifdef POSIT
-Bit #(7) f7_FCVT_S_P    = 7'h20;       // Quills: Posit to Float
-Bit #(7) f7_FCVT_P_S    = 7'h22;       // Quills: Float to Posit
-Bit #(7) f7_FCVT_R_P    = 7'h62;       // Quills: Posit to Quire
-Bit #(7) f7_FCVT_P_R    = 7'h6a;       // Quills: Quire to Posit
+Bit #(7) f7_FCVT_P_S    = 7'h26;       // Quills: Float to Posit
+Bit #(7) f7_FCVT_S_P    = 7'h24;       // Quills: Posit to Float
+Bit #(7) f7_FCVT_P_R    = 7'h2A;       // Quills: Quire to Posit
+Bit #(7) f7_FCVT_R_P    = 7'h2A;       // Quills: Posit to Quire
 `endif
 Bit #(7) f7_FCVT_W_D    = 7'h61;
 Bit #(7) f7_FCVT_WU_D   = 7'h61;
@@ -936,9 +946,12 @@ function Bool fv_is_fp_instr_legal (
           || ((f7 == f7_FCLASS_D) && ( rm == 1))
 `endif
 `ifdef POSIT
-          || ((f7 == f7_FMA_P) && (f2 == f2_P))
-          || ((f7 == f7_FCVT_S_P) && (rs2 == rs2_P))
+          || (f7 == f7_FMA_P)
+          || (f7 == f7_FMS_P)
+          || (f7 == f7_FDA_P)
+          || (f7 == f7_FDS_P)
           || ((f7 == f7_FCVT_P_S) && (rs2 == rs2_S))
+          || ((f7 == f7_FCVT_S_P) && (rs2 == rs2_P))
           || ((f7 == f7_FCVT_P_R) && (rs2 == rs2_R))
           || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_P))
 `endif
@@ -973,11 +986,14 @@ function Bool fv_fp_val1_from_gpr (Opcode opcode, Bit#(7) f7, RegName rs2);
 endfunction
 
 `ifdef POSIT
-// Posit instructions which update the quire does not update GPR
-// or FPR state (architectural state).
+// Posit instructions which update the quire does not update 
+// FPR or PPR state.
 function Bool fv_is_destn_in_quire (Opcode opc, Bit #(7) f7);
    return (   (opc == op_FP)
            && (   (f7 == f7_FMA_P)
+               || (f7 == f7_FMS_P)
+               || (f7 == f7_FDA_P)
+               || (f7 == f7_FDS_P)
                || (f7 == f7_FCVT_R_P)));
 endfunction
 
@@ -988,7 +1004,7 @@ function Bool fv_is_source_in_quire (Opcode opc, Bit #(7) f7);
 endfunction 
 
 // Posit instructions whose rd is in the posit register file
-function Bool fv_is_rd_in_PRF (Opcode opc, Bit #(7) f7);
+function Bool fv_is_rd_in_PPR (Opcode opc, Bit #(7) f7);
    return (   (opc == op_FP)
            && (   (f7 == f7_FCVT_P_R)
                || (f7 == f7_FCVT_P_S)));
