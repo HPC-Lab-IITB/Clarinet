@@ -811,10 +811,14 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
 
 `ifdef ISA_F
    alu_outputs.fval2     = inputs.frs2_val;
+`ifdef POSIT
+   alu_outputs.pval2     = inputs.prs2_val;
+`endif
 `endif
 
 `ifdef INCLUDE_TANDEM_VERIF
    // Normal trace output (if no trap)
+   // Posits are not supported in TV
 `ifdef ISA_F
    if (opcode == op_STORE_FP)
       alu_outputs.trace_data = mkTrace_F_STORE (fall_through_pc (inputs),
