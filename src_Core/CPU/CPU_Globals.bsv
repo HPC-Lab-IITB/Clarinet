@@ -487,7 +487,7 @@ typedef struct {
 `ifdef POSIT
    Bool       no_rd_upd;         // No rd to be updated as result goes to quire
    Bool       rs_frm_ppr;        // The rs is from PPR (Posit stores)
-   Bool       rd_in_ppr;         // The rd should update into PRF
+   Bool       rd_in_ppr;         // The rd should update into PPR
    WordPL     pval1;             // OP_Stage2_P: arg1
    WordPL     pval2;             // OP_Stage2_P: arg2
 `endif
@@ -583,7 +583,7 @@ typedef struct {
    WordFL    frd_val;
 `ifdef POSIT
    Bool      no_rd_upd;
-   Bool      rd_in_ppr;         // The rd should update into PRF
+   Bool      rd_in_ppr;         // The rd should update into PPR
    WordPL    prd_val;
 `endif
 `endif

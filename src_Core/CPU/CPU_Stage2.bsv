@@ -156,7 +156,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
       , frd_val  : rg_stage2.fval1
 `ifdef POSIT
       , no_rd_upd: False
-      , rd_in_prf: False
+      , rd_in_ppr: False
       , prd_val  : rg_stage2.pval1
 `endif
 `endif
@@ -510,7 +510,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
          data_to_stage3.fpr_flags= fflags;
 `ifdef POSIT
          data_to_stage3.no_rd_upd= rg_stage2.no_rd_upd;
-         data_to_stage3.rd_in_prf= rg_stage2.rd_in_prf;
+         data_to_stage3.rd_in_ppr= rg_stage2.rd_in_ppr;
          data_to_stage3.prd_val  = truncate (value);
 `endif
 `ifdef RV64
@@ -536,8 +536,8 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
          end
 
 `ifdef POSIT
-         else if ((rg_stage2.rd_in_prf) || (rg_stage2.no_rd_upd)) begin
-            if ((rg_stage2.rd_in_prf) && (!rg_stage2.no_rd_upd)) begin
+         else if ((rg_stage2.rd_in_ppr) || (rg_stage2.no_rd_upd)) begin
+            if ((rg_stage2.rd_in_ppr) && (!rg_stage2.no_rd_upd)) begin
                pbypass.bypass_state = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
                                                                : BYPASS_RD);
                pbypass.rd_val       = truncate (value);

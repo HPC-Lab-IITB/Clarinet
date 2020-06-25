@@ -50,7 +50,7 @@ import GPR_RegFile :: *;
 `ifdef ISA_F
 import FPR_RegFile :: *;
 `ifdef POSIT
-import PRF_RegFile :: *;
+import PPR_RegFile :: *;
 `endif
 `endif
 import CSR_RegFile :: *;
@@ -135,7 +135,7 @@ module mkCPU (CPU_IFC);
 `ifdef ISA_F
    FPR_RegFile_IFC  fpr_regfile  <- mkFPR_RegFile;
 `ifdef POSIT
-   PRF_RegFile_IFC  prf_regfile  <- mkPRF_RegFile;
+   PPR_RegFile_IFC  ppr_regfile  <- mkPPR_RegFile;
 `endif
 `endif
 
@@ -214,7 +214,7 @@ module mkCPU (CPU_IFC);
 `ifdef ISA_F
 					  fpr_regfile,
 `ifdef POSIT
-					  prf_regfile,
+					  ppr_regfile,
 `endif
 `endif
 					  csr_regfile);
@@ -230,7 +230,7 @@ module mkCPU (CPU_IFC);
 					   stage2.out.fbypass,
 					   stage3.out.fbypass,
 `ifdef POSIT
-					   prf_regfile,
+					   ppr_regfile,
 					   stage2.out.pbypass,
 					   stage3.out.pbypass,
 `endif
@@ -457,7 +457,7 @@ module mkCPU (CPU_IFC);
 `ifdef ISA_F
       fpr_regfile.server_reset.request.put (?);
 `ifdef POSIT
-      prf_regfile.server_reset.request.put (?);
+      ppr_regfile.server_reset.request.put (?);
 `endif
 `endif
       csr_regfile.server_reset.request.put (?);
@@ -501,7 +501,7 @@ module mkCPU (CPU_IFC);
 `ifdef ISA_F
       let ack_fpr <- fpr_regfile.server_reset.response.get;
 `ifdef POSIT
-      let ack_prf <- prf_regfile.server_reset.response.get;
+      let ack_ppr <- ppr_regfile.server_reset.response.get;
 `endif
 `endif
       let ack_csr <- csr_regfile.server_reset.response.get;
