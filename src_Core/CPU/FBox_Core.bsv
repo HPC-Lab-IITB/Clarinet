@@ -300,6 +300,9 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    let isFCVT_R_P    = (opc == op_FP) && (f7 == f7_FCVT_R_P) && (rs2 == rs2_P);
    let isFCVT_P_R    = (opc == op_FP) && (f7 == f7_FCVT_P_R) && (rs2 == rs2_R);
    let isFMA_P       = (opc == op_FP) && (f7 == f7_FMA_P);
+   let isFMS_P       = (opc == op_FP) && (f7 == f7_FMS_P);
+   let isFDA_P       = (opc == op_FP) && (f7 == f7_FDA_P);
+   let isFDS_P       = (opc == op_FP) && (f7 == f7_FDS_P);
 `endif
 
    // =============================================================
@@ -471,6 +474,33 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
          $display ("%0d: %m: doFMA_P ", cur_cycle);
       positCore.server_core.request.put (
          tuple4 (tagged P pV1, tagged P pV2, ?, FMA_P));
+      stateR <= FBOX_PBUSY;
+   endrule
+
+   // Execute a posit fused multiply add instruction into quire
+   rule doFMS_P ( validReq && isFMS_P );
+      if (verbosity > 1)
+         $display ("%0d: %m: doFMS_P ", cur_cycle);
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, FMS_P));
+      stateR <= FBOX_PBUSY;
+   endrule
+
+   // Execute a posit fused multiply add instruction into quire
+   rule doFDA_P ( validReq && isFDA_P );
+      if (verbosity > 1)
+         $display ("%0d: %m: doFDA_P ", cur_cycle);
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, FDA_P));
+      stateR <= FBOX_PBUSY;
+   endrule
+
+   // Execute a posit fused multiply add instruction into quire
+   rule doFDS_P ( validReq && isFDS_P );
+      if (verbosity > 1)
+         $display ("%0d: %m: doFDS_P ", cur_cycle);
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, FDS_P));
       stateR <= FBOX_PBUSY;
    endrule
 `endif
