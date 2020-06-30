@@ -698,9 +698,12 @@ Bit #(3) f3_FLD         = 3'b011;
 
 `ifdef POSIT
 // Posit point Load-Store
-Opcode   op_LOAD_P      = 7'b00_010_11;
-Opcode   op_STORE_P     = 7'b01_010_11;
-Bit #(3) f3_PSW         = 3'b010;
+// Posit load-store uses the same opcode as FP load-store for now.
+// The f3 field is chosen as f3[2] is used to select between
+// signed and unsigned loads. In the case of FP loads (IEEE or
+// Posit) the concept of unsigened loads 
+Bit #(3) f3_PSW         = 3'b110;
+Bit #(3) f3_PLW         = 3'b110;
 `endif
 
 // Fused FP Multiply Add/Sub instructions

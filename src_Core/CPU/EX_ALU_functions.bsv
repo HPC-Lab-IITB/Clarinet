@@ -702,33 +702,41 @@ function ALU_Outputs fv_LD (ALU_Inputs inputs);
 `endif
 `ifdef ISA_F
 		    || (funct3 == f3_FLW)
+`ifdef POSIT
+		    || (funct3 == f3_PLW)
+`endif
 `endif
 `ifdef ISA_D
 		    || (funct3 == f3_FLD)
 `endif
 		    );
 
+   let alu_outputs = alu_outputs_base;
+
    // FP loads are not legal unless the MSTATUS.FS bit is set
    Bool legal_FP_LD = True;
 `ifdef ISA_F
-   if ((opcode == op_LOAD_FP) || (opcode == op_LOAD_P))
+   if (opcode == op_LOAD_FP) begin
       legal_FP_LD = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
+
+`ifdef POSIT
+      // when posit loads are in the picture, f3 == PLW is reserved
+      // for loads to PPR. All other loads are to FPR
+      alu_outputs.rd_in_fpr = (funct3 != f3_PLW);
+      alu_outputs.rd_in_ppr = (funct3 == f3_PLW);
+   `else
+      // note that the destination register for this load is in the FPR
+      alu_outputs.rd_in_fpr = True;
+`endif
+   end
 `endif
 
-   let alu_outputs = alu_outputs_base;
 
    alu_outputs.control   = ((legal_LD && legal_FP_LD) ? CONTROL_STRAIGHT
                                                       : CONTROL_TRAP);
    alu_outputs.op_stage2 = OP_Stage2_LD;
    alu_outputs.rd        = inputs.decoded_instr.rd;
    alu_outputs.addr      = eaddr;
-`ifdef ISA_F
-   // note that the destination register for this load is in the FPR
-   alu_outputs.rd_in_fpr = (opcode == op_LOAD_FP);
-`ifdef POSIT
-   alu_outputs.rd_in_ppr = (opcode == op_LOAD_P);
-`endif
-`endif
 
 `ifdef INCLUDE_TANDEM_VERIF
    // Normal trace output (if no trap)
@@ -789,17 +797,16 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
    if (opcode == op_STORE_FP) begin
       legal_FP_ST = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
 
+`ifdef POSIT
+      // when posit stores are in the picture, f3 == PSW is reserved
+      // for stores from PPR. All other stores are from FPR
+      alu_outputs.rs_frm_fpr = (funct3 != f3_PSW);
+      alu_outputs.rs_frm_ppr = (funct3 == f3_PSW);
+`else
       // note that the source data register for this store is in the FPR
       alu_outputs.rs_frm_fpr = True;
-   end
-`ifdef POSIT
-   else if (opcode == op_STORE_P) begin
-      legal_FP_ST = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
-
-      // note that the source data register for this store is in the FPR
-      alu_outputs.rs_frm_ppr = True;
-   end
 `endif
+   end
 `endif
 
    alu_outputs.control   = ((legal_ST && legal_FP_ST) ? CONTROL_STRAIGHT
@@ -1223,14 +1230,6 @@ function ALU_Outputs fv_ALU (ALU_Inputs inputs);
 
    else if (   (inputs.decoded_instr.opcode == op_STORE_FP))
       alu_outputs = fv_ST (inputs);
-
-`ifdef POSIT
-   else if (   (inputs.decoded_instr.opcode == op_LOAD_P))
-      alu_outputs = fv_LD (inputs);
-
-   else if (   (inputs.decoded_instr.opcode == op_STORE_P))
-      alu_outputs = fv_ST (inputs);
-`endif
 
    else if (   (inputs.decoded_instr.opcode == op_FP)
             || (inputs.decoded_instr.opcode == op_FMADD)
