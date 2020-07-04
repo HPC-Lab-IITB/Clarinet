@@ -29,6 +29,11 @@ import BuildVector  :: *;
 import Posit_Numeric_Types :: *;
 `endif
 
+`ifdef ACCEL
+import Posit_Numeric_Types :: *;
+//import Accel_Defines :: *;
+`endif
+
 // ================================================================
 // BSV project imports
 
@@ -141,6 +146,10 @@ typedef  Vector #(Bytes_per_WordFL, Byte)      WordFL_B;
 typedef  Bit #(PositWidth) WordPL;
 `endif
 
+`endif
+
+`ifdef ACCEL
+typedef  Bit #(32) WordAL;   //Accelerator inputs ,for now its hard coded as Bit#(32)
 `endif
 
 // ================================================================
@@ -1013,6 +1022,96 @@ function Bool fv_is_rd_in_PPR (Opcode opc, Bit #(7) f7);
                || (f7 == f7_FCVT_P_S)));
 endfunction
 `endif
+`endif
+
+
+`ifdef ACCEL //When PositAccel is set
+// ================================================================
+// ACCEL
+
+Opcode   accel_opc          = 7'b00_010_11;   //opcode that its PositAccel(may change it later)
+
+//function bits definition
+Bit #(7) f7_fma_p = 7'h0;
+Bit #(7) f7_fda_p = 7'h1;
+Bit #(7) f7_fms_p = 7'h2;
+Bit #(7) f7_fds_p = 7'h3;
+Bit #(7) f7_fcvt_p_s = 7'h4;
+Bit #(7) f7_fcvt_s_p = 7'h5;
+Bit #(7) f7_fcvt_p_r = 7'h6;
+Bit #(7) f7_fcvt_r_p = 7'h7;
+
+
+/*Placeholder for Legality checks
+
+
+// RS2 encoding
+//Changes maybe required for accelerator 
+Bit #(5) rs2_s          = 5'h00;
+Bit #(5) rs2_d          = 5'h01;
+Bit #(5) rs2_p          = 5'h10;          // Quills: rs2 for Posits
+Bit #(5) rs2_r          = 5'h11;          // Quills: rs2 for Quire
+
+
+// ToDO:accel_rounding_mode_check if required,here definition of fv_rmode_check is copied from ISA_F.
+
+(need to be changed as per accelerator conditions)
+// Returns the correct rounding mode considering the values in the
+// FCSR and the instruction and checks legality
+
+function Tuple2# (Bit #(3), Bool) fv_rmode_check (
+   Bit #(3) inst_frm, Bit #(3) fcsr_frm);
+   let rm = (inst_frm == 3'h7) ? fcsr_frm : inst_frm;
+   let rm_is_legal  = (inst_frm == 3'h7) ? fv_fcsr_frm_valid (fcsr_frm)
+                                         : fv_inst_frm_valid (inst_frm);
+   return (tuple2 (rm, rm_is_legal));
+endfunction
+
+
+//function to determine whether instruction for accelerator is legal or not
+//needs changes
+
+/*function Bool accel_instr_legal (
+   Bit #(7) f7, RegName rs2, Opcode accel_opc); 
+   Bool is_legal = True;
+   if ( (accopcode == accel_opc )&& ((f7 == f7_fma_p)
+               || (f7 == f7_fms_p)
+               || (f7 == f7_fda_p)
+               || (f7 == f7_fds_p)
+               || ((f7==f7_fcvt_r_p)   && (rs2 == rs2_p))
+               || ((f7 == f7_fcvt_p_s) && (rs2 == rs2_s))
+               || ((f7 == f7_fcvt_s_p) && (rs2 == rs2_p))
+               || ((f7 == f7_fcvt_p_r) && (rs2 == rs2_r))))
+		return True;
+		else return False;
+  endfunction*/
+  
+
+
+// Posit instructions which update the quire does not update 
+//  PPR state.
+function Bool accel_is_destn_in_quire (Opcode accopcode,Bit #(7) f7);
+   return (  (accopcode == accel_opc) &&  ((f7 == f7_fma_p)
+               || (f7 == f7_fms_p)
+               || (f7 == f7_fda_p)
+               || (f7 == f7_fds_p)
+               || (f7==f7_fcvt_r_p)));
+               
+endfunction
+
+// Posit instructions which takes no operands from the  GPR
+// but only reads from the quire
+function Bool accel_is_source_in_quire (Opcode accopcode, Bit #(7) f7);
+   return ( (accopcode == accel_opc) && (f7 == f7_fcvt_p_r));
+endfunction 
+
+// Posit instructions whose rd is in the posit register file
+function Bool accel_is_rd_in_PPR (Opcode accopcode, Bit #(7) f7);
+   return (   (accopcode == accel_opc) 
+            && (   (f7 == f7_fcvt_p_r)
+            || (f7 == f7_fcvt_p_s)));
+               
+endfunction
 `endif
 
 // ================================================================
