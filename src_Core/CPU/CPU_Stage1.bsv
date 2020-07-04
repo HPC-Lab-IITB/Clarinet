@@ -40,6 +40,9 @@ import FPR_RegFile      :: *;
 import PPR_RegFile      :: *;
 `endif
 `endif
+`ifdef ACCEL                       //if accelerator is set;assuming both inputs as scalars  and scalar output for now
+import PPR_RegFile      :: *;
+`endif
 import CSR_RegFile      :: *;
 import EX_ALU_functions :: *;
 
@@ -87,6 +90,11 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 		      PBypass          pbypass_from_stage3,
 `endif
 `endif
+`ifdef ACCEL     //asuming that for now dealing with scalars,so just using PPR
+                      PPR_RegFile_IFC      ppr_regfile,
+		      AccelBypass          accelbypass_from_stage2,
+		      AccelBypass          accelbypass_from_stage3,
+`endif
 		      CSR_RegFile_IFC  csr_regfile,
 		      Epoch            cur_epoch,
 		      Priv_Mode        cur_priv)
@@ -115,6 +123,7 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 
    let decoded_instr  = rg_stage_input.decoded_instr;
    let funct3         = decoded_instr.funct3;
+   let funct7         = decoded_instr.funct7;  //func7 of decoded instruction,for the case of accelerator func7 tells which accelerator operation to be performed.
 
    // Register rs1 read and bypass
    let rs1 = decoded_instr.rs1;
@@ -172,15 +181,32 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 `endif
 `endif
 
+`ifdef ACCEL
+   // rs1 read and bypass(similar to POSIT)
+   let accelrs1_val = ppr_regfile.read_rs1 (rs1);  
+   match { .accelbusy1a, .accelrs1a } = acccel_fn_ppr_bypass (accelbypass_from_stage3, rs1, accelrs1_val);
+   match { .accelbusy1b, .accelrs1b } = accel_fn_ppr_bypass (accelbypass_from_stage2, rs1, accelrs1a);
+   Bool accelrs1_busy = (accelbusy1a || accelbusy1b);
+   WordPL accelrs1_val_bypassed = accelrs1b;
+
+   // rs2 read and bypass(similar to POSIT)
+   let accelrs2_val = ppr_regfile.read_rs2 (rs2);
+   match { .accelbusy2a, .accelrs2a } = accel_fn_ppr_bypass (pbypass_from_stage3, rs2, accelrs2_val);
+   match { .accelbusy2b, .accelrs2b } = accel_fn_ppr_bypass (pbypass_from_stage2, rs2, accelrs2a);
+   Bool accelrs2_busy = (accelbusy2a || accelbusy2b);
+   WordPL accelrs2_val_bypassed = accelrs2b;
+`endif
+
+
    // ALU function
    let alu_inputs = ALU_Inputs {cur_priv       : cur_priv,
 				pc             : rg_stage_input.pc,
 				is_i32_not_i16 : rg_stage_input.is_i32_not_i16,
-				instr          : rg_stage_input.instr,
+				instr          : rg_stage_input.instr,//32 bit instruction 
 `ifdef ISA_C
 				instr_C        : rg_stage_input.instr_C,
 `endif
-				decoded_instr  : rg_stage_input.decoded_instr,
+				decoded_instr  : rg_stage_input.decoded_instr,//decoded instruction
 				rs1_val        : rs1_val_bypassed,
 				rs2_val        : rs2_val_bypassed,
 `ifdef ISA_F
@@ -196,6 +222,12 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 				prs1_val       : prs1_val_bypassed,
 				prs2_val       : prs2_val_bypassed,
 `endif
+`endif
+
+`ifdef ACCEL 
+				accelrs1_val   : accelrs1_val_bypassed,
+				accelrs2_val   : accelrs2_val_bypassed,
+				rocc_value_bit : rg_stage_input.rocc_value_bit,  //value bit of RoCC
 `endif
 				mstatus        : csr_regfile.read_mstatus,
 				misa           : csr_regfile.read_misa };
@@ -217,13 +249,26 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 					       rs_frm_fpr    : alu_outputs.rs_frm_fpr,
 					       val1_frm_gpr  : alu_outputs.val1_frm_gpr,
 `ifdef POSIT
-                                               no_rd_upd     : alu_outputs.no_rd_upd,
+                           no_rd_upd     : alu_outputs.no_rd_upd,
 					       rs_frm_ppr    : alu_outputs.rs_frm_ppr,
 					       rd_in_ppr     : alu_outputs.rd_in_ppr,
 					       pval1         : alu_outputs.pval1,
 					       pval2         : alu_outputs.pval2,
 `endif
 					       rounding_mode : alu_outputs.rm,
+`endif
+
+`ifdef ACCEL            //ToDo:include GPR when dealing with vectors
+                          
+					       accelval1     : alu_outputs.accelval1,//input1
+					       accelval2     : alu_outputs.accelval2,//input2
+						   rs_frm_ppr    : alu_outputs.rs_frm_ppr,
+					       rd_in_ppr     : alu_outputs.rd_in_ppr,
+						   funct3        : alu_outputs.funct3, //In RoCC,funct3 is referred as rg_sel=[xd xs1 xs2]
+                           no_rd_upd     : alu_outputs.no_rd_upd,
+						   funct7	     : alu_outputs.funct7, //in accelerator funct7 acts as the opcode to determine what accelerator operation to be carried out
+						   rocc_value_bit : alu_outputs.rocc_value_bit,  //value bit for RoCC
+						   rounding_mode : alu_outputs.rm,
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
 					       trace_data    : alu_outputs.trace_data,
@@ -259,17 +304,32 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 						     fval2           : ?,
 						     fval3           : ?,
 						     rd_in_fpr       : ?,
-					             rs_frm_fpr      : ?,
-					             val1_frm_gpr    : ?,
+					         rs_frm_fpr      : ?,
+					         val1_frm_gpr    : ?,
 `ifdef POSIT
 						     pval1           : ?,
 						     pval2           : ?,
-					             rs_frm_ppr      : ?,
+					         rs_frm_ppr      : ?,
 						     rd_in_ppr       : ?,
-                                                     no_rd_upd       : ?,
+                             no_rd_upd       : ?,
 `endif
 						     rounding_mode   : ?,
 `endif
+
+`ifdef ACCEL
+						     accelval1           : ?,
+						     accelval2           : ?,
+					         rs_frm_ppr      : ?,
+						     rd_in_ppr       : ?,
+							 no_rd_upd       : ?,
+                             funct3          : ?,
+                             funct7		     : ?,
+							 rocc_value_bit  : ?,
+							 rounding_mode   : ?,
+							
+`endif
+
+
 `ifdef INCLUDE_TANDEM_VERIF
 						     trace_data: alu_outputs.trace_data,
 `endif
@@ -295,6 +355,12 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 	 output_stage1.ostatus = OSTATUS_BUSY;
       end
 `endif
+`endif
+`ifdef ACCEL
+      // Stall if bypass pending for PPR rs1, rs2 or rs3
+      else if (accelrs1_busy || accelrs2_busy) begin
+	 output_stage1.ostatus = OSTATUS_BUSY;
+      end
 `endif
 
       // Trap on fetch-exception
