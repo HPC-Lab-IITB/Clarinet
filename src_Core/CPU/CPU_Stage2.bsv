@@ -645,7 +645,18 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `endif
 `endif
 	    dcache.req (cache_op,
+`ifdef POSIT
+            // The PSW/PLW differentiate from the FSW/FLW purely
+            // based on the f3 field. But this differentiation
+            // does not apply to the caches who should treat a
+            // posit load/store as a signed 32-bit load/store. If
+            // the unchanged f3 is passed onto the cache, it would
+            // treat the posit load/store as unsigned word op.
+			((x.rs_frm_ppr || x.rd_in_ppr) ? f3_FLW
+                                                       : instr_funct3 (x.instr)),
+`else
 			instr_funct3 (x.instr),
+`endif
 `ifdef ISA_A
 			amo_funct7,
 `endif

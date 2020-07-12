@@ -509,12 +509,14 @@ instance FShow #(Data_Stage1_to_Stage2);
 `ifdef ISA_F
       fmt = fmt + $format ("\n");
       fmt = fmt + $format ("            rd_in_fpr: ", fshow (x.rd_in_fpr));
+      fmt = fmt + $format ("            rs_frm_fpr: ", fshow (x.rs_frm_fpr));
       fmt = fmt + $format ("            fval1:%h  fval2:%h  fval3:%h}",
 			   x.fval1, x.fval2, x.fval3);
 `ifdef POSIT
       fmt = fmt + $format ("\n");
       fmt = fmt + $format ("            no_rd_upd: ", fshow (x.no_rd_upd));
       fmt = fmt + $format ("            rd_in_ppr: ", fshow (x.rd_in_ppr));
+      fmt = fmt + $format ("            rs_frm_ppr: ", fshow (x.rs_frm_ppr));
       fmt = fmt + $format ("            pval1:%h  pval2:%h }",
 			   x.pval1, x.pval2);
 `endif
