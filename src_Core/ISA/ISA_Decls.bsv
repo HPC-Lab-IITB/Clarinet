@@ -991,26 +991,28 @@ endfunction
 `ifdef POSIT
 // Posit instructions which update the quire does not update 
 // FPR or PPR state.
-function Bool fv_is_destn_in_quire (Opcode opc, Bit #(7) f7);
+function Bool fv_is_destn_in_quire (Opcode opc, Bit #(7) f7, RegName rs2);
    return (   (opc == op_FP)
            && (   (f7 == f7_FMA_P)
                || (f7 == f7_FMS_P)
                || (f7 == f7_FDA_P)
                || (f7 == f7_FDS_P)
-               || (f7 == f7_FCVT_R_P)));
+               || (   (f7 == f7_FCVT_R_P)
+                   && (rs2 == rs2_P))));
 endfunction
 
 // Posit instructions which takes no operands from the FPR or GPR
 // but only reads from the quire
-function Bool fv_is_source_in_quire (Opcode opc, Bit #(7) f7);
-   return ((opc == op_FP) && (f7 == f7_FCVT_P_R));
+function Bool fv_is_source_in_quire (Opcode opc, Bit #(7) f7, RegName rs2);
+   return ((opc == op_FP) && (f7 == f7_FCVT_P_R) && (rs2 == rs2_R));
 endfunction 
 
 // Posit instructions whose rd is in the posit register file
-function Bool fv_is_rd_in_PPR (Opcode opc, Bit #(7) f7);
+function Bool fv_is_rd_in_PPR (Opcode opc, Bit #(7) f7, RegName rs2);
    return (   (opc == op_FP)
-           && (   (f7 == f7_FCVT_P_R)
-               || (f7 == f7_FCVT_P_S)));
+           && (   (f7 == f7_FCVT_P_S)
+               || (   (f7 == f7_FCVT_P_R)
+                   && (rs2 == rs2_R))));
 endfunction
 `endif
 `endif

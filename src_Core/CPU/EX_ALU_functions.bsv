@@ -1035,9 +1035,9 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
    alu_outputs.fval3     = inputs.frs3_val;
 
 `ifdef POSIT
-   alu_outputs.no_rd_upd = fv_is_destn_in_quire (opcode, funct7);
-   alu_outputs.rd_in_ppr = (  fv_is_rd_in_PPR (opcode, funct7)
-                           || fv_is_destn_in_quire (opcode, funct7));
+   alu_outputs.no_rd_upd = fv_is_destn_in_quire (opcode, funct7, rs2);
+   alu_outputs.rd_in_ppr = (  fv_is_rd_in_PPR (opcode, funct7, rs2)
+                           || fv_is_destn_in_quire (opcode, funct7, rs2));
    alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2) && 
                            !alu_outputs.rd_in_ppr;
 
