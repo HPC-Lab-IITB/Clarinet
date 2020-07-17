@@ -1,0 +1,117 @@
+This directory contains modifications to files in the riscv-tools and
+riscv-gnu-toolchain repositories to include the new Clarinet instructions.
+Only the modified files have been placed here with the steps to build a
+modified assembler and compiler which features the new instructions. 
+
+The steps were modified from:
+
+   https://nitish2112.github.io/post/adding-instruction-riscv/
+
+Other reference:
+
+   https://groups.google.com/a/groups.riscv.org/forum/#!msg/sw-dev/sL_OHXYj3LY/Gsm6sBc9BQAJ
+
+--------------------------------
+STEP 1: Add new opcode encodings
+--------------------------------
+
+(a) Clone the riscv-tools repository:
+
+   git clone --recursive https://github.com/riscv/riscv-tools
+
+This repository will only be used to generate the encodings for the new
+instructions. The actual source for the gcc tools are in another repository.
+
+(b) Copy the opcodes file to the location:
+
+   riscv-tools/riscv-opcodes/
+
+(c) Inside riscv-tools/riscv-opcodes/
+
+   cat opcodes* | ./parse-opcodes -c > /tmp/temp.h
+
+(d) In temp.h, you will find the following entries:
+
+   #define MATCH_FMA_P 0x64000053
+   #define MASK_FMA_P  0xfe000fff
+   #define MATCH_FMS_P 0x6c000053
+   #define MASK_FMS_P  0xfe000fff
+   #define MATCH_FDA_P 0x74000053
+   #define MASK_FDA_P  0xfe000fff
+   #define MATCH_FDS_P 0x7c000053
+   #define MASK_FDS_P  0xfe000fff
+   #define MATCH_FCVT_P_S 0x4c000053
+   #define MASK_FCVT_P_S  0xfff0007f
+   #define MATCH_FCVT_S_P 0x49000053
+   #define MASK_FCVT_S_P  0xfff0007f
+   #define MATCH_FCVT_R_P 0x55000053
+   #define MASK_FCVT_R_P  0xfff00fff
+   #define MATCH_FCVT_P_R 0x55100053
+   #define MASK_FCVT_P_R  0xffff807f
+   #define MATCH_PLW 0x6007
+   #define MASK_PLW  0x707f
+   #define MATCH_PSW 0x6027
+   #define MASK_PSW  0x707f
+
+---------------------------------------------------------------------
+STEP 2: Modify the binutils source files to recognize the new instructions
+---------------------------------------------------------------------
+
+(a) Make the following edits to:
+
+   binutils-2.34/include/opcode/riscv-opc.h
+
+   (i) Add the lines in 1(d)
+
+   (ii) Add the following macro definitions:
+
+      DECLARE_INSN(fma_p   ,MATCH_FMA_P   ,MASK_FMA_P   )
+      DECLARE_INSN(fms_p   ,MATCH_FMS_P   ,MASK_FMS_P   )
+      DECLARE_INSN(fda_p   ,MATCH_FDA_P   ,MASK_FDA_P   )
+      DECLARE_INSN(fds_p   ,MATCH_FDS_P   ,MASK_FDS_P   )
+      DECLARE_INSN(fcvt_p_s,MATCH_FCVT_P_S,MASK_FCVT_P_S)
+      DECLARE_INSN(fcvt_s_p,MATCH_FCVT_S_P,MASK_FCVT_S_P)
+      DECLARE_INSN(fcvt_r_p,MATCH_FCVT_R_P,MASK_FCVT_R_P)
+      DECLARE_INSN(fcvt_p_r,MATCH_FCVT_P_R,MASK_FCVT_P_R)
+      DECLARE_INSN(plw     ,MATCH_PLW     ,MASK_PLW     )
+      DECLARE_INSN(psw     ,MATCH_PSW     ,MASK_PSW     )
+
+(b) Add the following edits to:
+
+   binutils-2.34/opcodes/riscv-opc.c
+
+   (i) Add the following to the definition of riscv_opcodes[]:
+
+/* name,     xlen, isa,   operands, match, mask, match_func, pinfo.  */
+/* Clarinet new instructions -- BEGIN */
+/* The D, S, T refer to FPR registers */
+{"fma.p",      0, INSN_CLASS_F,   "D,S,T",    MATCH_FMA_P | MASK_RM, MASK_FMA_P | MASK_RM, match_opcode, 0 },
+{"fma.p",      0, INSN_CLASS_F,   "D,S,T,m",  MATCH_FMA_P, MASK_FMA_P, match_opcode, 0 },
+{"fms.p",      0, INSN_CLASS_F,   "D,S,T",    MATCH_FMS_P | MASK_RM, MASK_FMS_P | MASK_RM, match_opcode, 0 },
+{"fms.p",      0, INSN_CLASS_F,   "D,S,T,m",  MATCH_FMS_P, MASK_FMS_P, match_opcode, 0 },
+{"fda.p",      0, INSN_CLASS_F,   "D,S,T",    MATCH_FDA_P | MASK_RM, MASK_FDA_P | MASK_RM, match_opcode, 0 },
+{"fda.p",      0, INSN_CLASS_F,   "D,S,T,m",  MATCH_FDA_P, MASK_FDA_P, match_opcode, 0 },
+{"fds.p",      0, INSN_CLASS_F,   "D,S,T",    MATCH_FDS_P | MASK_RM, MASK_FDS_P | MASK_RM, match_opcode, 0 },
+{"fds.p",      0, INSN_CLASS_F,   "D,S,T,m",  MATCH_FDS_P, MASK_FDS_P, match_opcode, 0 },
+
+{"fcvt.p.s",   0, INSN_CLASS_F,   "D,S",  MATCH_FCVT_P_S | MASK_RM, MASK_FCVT_P_S | MASK_RM, match_opcode, 0 },
+{"fcvt.p.s",   0, INSN_CLASS_F,   "D,S,m",  MATCH_FCVT_P_S, MASK_FCVT_P_S, match_opcode, 0 },
+{"fcvt.s.p",   0, INSN_CLASS_F,   "D,S",  MATCH_FCVT_S_P | MASK_RM, MASK_FCVT_S_P | MASK_RM, match_opcode, 0 },
+{"fcvt.s.p",   0, INSN_CLASS_F,   "D,S,m",  MATCH_FCVT_S_P, MASK_FCVT_S_P, match_opcode, 0 },
+{"fcvt.p.r",   0, INSN_CLASS_F,   "D,S",  MATCH_FCVT_P_R | MASK_RM, MASK_FCVT_P_R | MASK_RM, match_opcode, 0 },
+{"fcvt.p.r",   0, INSN_CLASS_F,   "D,S,m",  MATCH_FCVT_P_R, MASK_FCVT_P_R, match_opcode, 0 },
+{"fcvt.r.p",   0, INSN_CLASS_F,   "D,S",  MATCH_FCVT_R_P | MASK_RM, MASK_FCVT_R_P | MASK_RM, match_opcode, 0 },
+{"fcvt.r.p",   0, INSN_CLASS_F,   "D,S,m",  MATCH_FCVT_R_P, MASK_FCVT_R_P, match_opcode, 0 },
+
+{"plw",       0, INSN_CLASS_F,   "D,o(s)",  MATCH_PLW, MASK_PLW, match_opcode, INSN_DREF|INSN_4_BYTE },
+{"plw",       0, INSN_CLASS_F,   "D,A,s",  0, (int) M_FLW, match_never, INSN_MACRO },
+{"psw",       0, INSN_CLASS_F,   "T,q(s)",  MATCH_PSW, MASK_PSW, match_opcode, INSN_DREF|INSN_4_BYTE },
+{"psw",       0, INSN_CLASS_F,   "T,A,s",  0, (int) M_FSW, match_never, INSN_MACRO },
+/* Clarinet new instructions -- END */
+
+
+(c) Compile the modified toolchain. I used crosstool-ng but any other
+technique should work as well.
+
+   
+

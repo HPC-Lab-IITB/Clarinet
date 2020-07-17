@@ -1,23 +1,45 @@
-# Open-source RISC-V CPUs from Bluespec, Inc.
+# Open-source Posit-enabled RISC-V CPU
 
-This is one of a family of free, open-source RISC-V CPUs created by Bluespec, Inc.
+Clarinet is a parameterizable RISC-V processor which integrates a
+Posit Arithmetic Unit (Melodica) with Quire functionality, and a
+Posit Register File.
 
-- [Piccolo](https://github.com/bluespec/Piccolo): 3-stage, in-order pipeline
+More details about the hardware architecture of Clarinet and
+Melodica are available [here] (https://arxiv.org/abs/2006.00364)
 
-  Piccolo is intended for low-end applications (Embedded Systems, IoT, microcontrollers, etc.).
+## Getting Started
+This repository uses submodules. Please run before proceeding:
+```
+    git submodule update --init --recursive
+```
 
-- [Flute](https://github.com/bluespec/Flute): 5-stage, in-order pipeline
+## New Instructions for Posit Arithmetic
+Clarinet also introduces ten new instructions for operating with
+Posits and Quire. An example assembly program which also serves as
+a smoke-test for posit functionality in Clarinet is available at:
 
-  Flute is intended for low-end to medium applications that require
-  64-bit operation, an MMU (Virtual Memory) and more performance than
-  Piccolo-class processors.
+```
+   Tests/isa/rv32uf-p-posits(.dump)
+```
 
-- [Toooba](https://github.com/bluespec/Toooba): superscalar, deep, out-of-order pipeline, using MIT's RISCY-OOO core.
+The `riscv-tests` submodule which is part of this repository has
+macros to use the new Clarinet instructions and a sample test is
+available at:
 
-The three repo structures are nearly identical, and the ways to build
-and run are identical.  This README is identical--please substitute
-"Piccolo" or "Flute" or "Toooba" below wherever you see `<CPU>`.
+```
+   riscv-tests/isa/rv32uf/posits.S
+```
 
+Changes have been made to gcc binutils to recognize these new
+instructions. Directions to replicate these changes are in the
+`binutils` folder of this repository.
+
+## CPU Source Code
+This repository was created by forking the [Flute repository]
+(https://github.com/bluespec/Flute). Flute is a parametrizable
+RISC-V processor, and Clarinet is based on the Flute pipeline with
+enhancement for posit arithmetic. The rest of this README has been
+modified from the original Flute repository.
 
 ### About the source codes (in BSV and Verilog)
 
@@ -29,28 +51,32 @@ adequate to boot a Linux kernel.
 The pre-generated synthesizable Verilog RTL source files in this
 repository are for a few specific configurations:
 
-1. RV32ACIMU:    **(DARPA SSITH users: with Piccolo this is the "P1" processor)**
+1. RV32ACFIMU:
     - RV32I: base RV32 integer instructions
     - 'A' extension: atomic memory ops
     - 'C' extension: compressed instructions
     - 'M' extension: integer multiply/divide instructions
-    - Privilege levels M (machine) and U (user)
+    - 'F' extension: single-precision floating point instructions
+    - Privilege levels M (machine), S (Supervisor) and U (user)
+    - Supports Sv32 virtual memory
     - Supports external, timer, software and non-maskable interrupts
-    - Passes all riscv-isa tests for RV32ACIMU
+    - Passes all riscv-isa tests for RV32ACFIMUS
     - Boots FreeRTOS
 
-2. RV64ACDFIMSU    **(DARPA SSITH users: with Flute this is the "P2" processor)**
-    - RV64I: base RV64 integer instructions
-    - 'A' extension: atomic memory ops
-    - 'C' extension: compressed instructions
-    - 'D' extension: double-precision floating point instructions
-    - 'F' extension: single-precision floating point instructions
-    - 'M' extension: integer multiply/divide instructions
-    - Privilege levels M (machine), S (Supervisor) and U (user)
-    - Supports Sv39 virtual memory
-    - Supports external, timer, software and non-maskable interrupts
-    - Passes all riscv-isa tests for RV64ACDFIMSU
-    - Boots the Linux kernel
+2. RV32ACFIMU_P16:
+    - Everything in RV32ACFIMU
+    - Support for 16-bit posit arithmetic including a 16-bit posit
+      register file
+
+3. RV32ACFIMU_P24:
+    - Everything in RV32ACFIMU
+    - Support for 24-bit posit arithmetic including a 24-bit posit
+      register file
+
+4. RV32ACFIMU_P32:
+    - Everything in RV32ACFIMU
+    - Support for 32-bit posit arithmetic including a 32-bit posit
+      register file
 
 If you want to generate other Verilog variants, you'll need the free
 and open-source `bsc` compiler, which you can find
@@ -84,10 +110,6 @@ simulation, Verilator Verilog simulation, or Icarus Verilog
 
 The generated Verilog is synthesizable. Bluespec tests all this code
 on Xilinx FPGAs.
-
-#### Plans
-
-- Ongoing continuous micro-architectural improvements for performance and hardware area.
 
 ----------------------------------------------------------------
 ## Source codes
@@ -154,18 +176,12 @@ will need the free and open-source [`bsc`
 compiler](https://github.com/B-Lang-org).  See the next section for
 examples of how the build is configured for different ISA features.
 
-In fact the CPU also supports a "Tandem Verifier" that produces an
-instruction-by-instruction trace that can be checked for correctness
-against a RISC-V Golden Reference Model.  Please contact Bluespec,
-Inc. for more information.
-
 ----------------------------------------------------------------
 ### Building and running from the Verilog sources, out of the box
 
 In any of the Verilog-build directories:
 
             builds/<ARCH>_<CPU>_verilator/
-            builds/<ARCH>_<CPU>_iverilog/
 
   - `$ make simulator` will create a Verilog simulation executable using Verilator or iverilog, respectively
 
@@ -198,9 +214,6 @@ privilege U, S and M.
 We test our builds with the following versions of iVerilog and
 Verilator.  Later versions are probably ok; we have observed some
 problems with earlier versions of both tools.
-
-        $ iverilog -v
-        Icarus Verilog version 10.1 (stable) ()
 
         $ verilator --version
         Verilator 3.922 2018-03-17 rev verilator_3_920-32-gdf3d1a4
