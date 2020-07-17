@@ -1,3 +1,6 @@
 [submodule "Melodica"]
 	path = Melodica
 	url = https://github.com/HPC-Lab-IITB/Melodica
+[submodule "riscv-tests"]
+	path = riscv-tests
+	url = https://github.com/riscv/riscv-tests
