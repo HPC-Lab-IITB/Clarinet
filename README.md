@@ -5,7 +5,7 @@ Posit Arithmetic Unit (Melodica) with Quire functionality, and a
 Posit Register File.
 
 More details about the hardware architecture of Clarinet and
-Melodica are available [here] (https://arxiv.org/abs/2006.00364)
+Melodica are available [here](https://arxiv.org/abs/2006.00364)
 
 ## Getting Started
 This repository uses submodules. Please run before proceeding:
@@ -35,8 +35,7 @@ instructions. Directions to replicate these changes are in the
 `binutils` folder of this repository.
 
 ## CPU Source Code
-This repository was created by forking the [Flute repository]
-(https://github.com/bluespec/Flute). Flute is a parametrizable
+This repository was created by forking the [Flute repository](https://github.com/bluespec/Flute). Flute is a parametrizable
 RISC-V processor, and Clarinet is based on the Flute pipeline with
 enhancement for posit arithmetic. The rest of this README has been
 modified from the original Flute repository.
