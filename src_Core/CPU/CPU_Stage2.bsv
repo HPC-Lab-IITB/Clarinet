@@ -47,9 +47,10 @@ import ISA_Decls     :: *;
 
 import TV_Info       :: *;
 
-import CPU_Globals   :: *;
-import Near_Mem_IFC  :: *;
-import CSR_RegFile   :: *;    // For SATP, SSTATUS, MSTATUS
+import CPU_Globals      :: *;
+import Near_Mem_IFC     :: *;
+import MMU_Cache_Common :: *;    // for CacheOp
+import CSR_RegFile      :: *;    // For SATP, SSTATUS, MSTATUS
 
 `ifdef SHIFT_SERIAL
 import Shifter_Box  :: *;

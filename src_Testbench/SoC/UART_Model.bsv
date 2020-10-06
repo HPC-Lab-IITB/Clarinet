@@ -189,7 +189,8 @@ endfunction
 (* synthesize *)
 module mkUART (UART_IFC);
 
-   Reg #(Bit #(8)) cfg_verbosity <- mkConfigReg (0);
+   // 0: quiet; 1: reset and char input/output; 2: + detail
+   Integer verbosity = 0;
 
    Reg #(Module_State) rg_state     <- mkReg (STATE_START);
 
@@ -280,7 +281,7 @@ module mkUART (UART_IFC);
 
       f_reset_rsps.enq (?);
 
-      if (cfg_verbosity != 0)
+      if (verbosity != 0)
 	 $display ("%0d: UART.rl_reset", cur_cycle);
    endrule
 
@@ -304,12 +305,13 @@ module mkUART (UART_IFC);
       end
       else if (lsbs != 0) begin
 	 $display ("%0d: %m.rl_process_rd_req: ERROR: UART misaligned addr", cur_cycle);
-	 $display ("            ", fshow (rda));
+	 $display ("    ", fshow (rda));
 	 rresp = axi4_resp_slverr;
       end
       else if (offset [63:3] != 0) begin
 	 $display ("%0d: %m.rl_process_rd_req: ERROR: UART unsupported addr", cur_cycle);
-	 $display ("            ", fshow (rda));
+	 $display ("    Register offset 0x%0h", offset);
+	 $display ("    ", fshow (rda));
 	 rresp = axi4_resp_decerr;
       end
 
@@ -346,7 +348,7 @@ module mkUART (UART_IFC);
 
       else begin
 	 $display ("%0d: %m.rl_process_rd_req: ERROR: UART unsupported addr", cur_cycle);
-	 $display ("            ", fshow (rda));
+	 $display ("    ", fshow (rda));
 	 rresp = axi4_resp_decerr;
       end
 
@@ -363,10 +365,11 @@ module mkUART (UART_IFC);
 			      ruser: rda.aruser};
       slave_xactor.i_rd_data.enq (rdr);
 
-      if (cfg_verbosity > 1) begin
+      if (verbosity > 1) begin
 	 $display ("%0d: %m.rl_process_rd_req", cur_cycle);
-	 $display ("            ", fshow (rda));
-	 $display ("            ", fshow (rdr));
+	 $display ("    ", fshow (rda));
+	 $display ("    ", fshow (rdr));
+	 $display ("    UART reg [%0h] => 0x%0h", offset [2:0], rdata_byte);
       end
    endrule
 
@@ -399,7 +402,9 @@ module mkUART (UART_IFC);
       end
       else if (offset [63:3] != 0) begin
 	 $display ("%0d: %m.rl_process_wr_req: ERROR: UART unsupported addr", cur_cycle);
-	 $display ("            ", fshow (wra));
+	 $display ("    Register offset 0x%0h", offset);
+	 $display ("    ", fshow (wra));
+	 $display ("    ", fshow (wrd));
 	 bresp = axi4_resp_decerr;
       end
 
@@ -408,6 +413,9 @@ module mkUART (UART_IFC);
 	 // Write a char to the serial line
 	 rg_thr <= data_byte;
 	 f_to_console.enq (data_byte);
+	 if (verbosity != 0)
+	    $display ("%0d: %m.rl_process_wr_req: ASCII %0d (0x%0h)",
+		      cur_cycle, data_byte, data_byte);
       end
       // offset 0: DLL
       else if ((offset [2:0] == addr_UART_dll) && ((rg_lcr & uart_lcr_dlab) != 0))
@@ -436,8 +444,8 @@ module mkUART (UART_IFC);
 
       else begin
 	 $display ("%0d: %m.rl_process_wr_req: ERROR: UART unsupported addr", cur_cycle);
-	 $display ("            ", fshow (wra));
-	 $display ("            ", fshow (wrd));
+	 $display ("    ", fshow (wra));
+	 $display ("    ", fshow (wrd));
 	 bresp = axi4_resp_decerr;
       end
 
@@ -447,11 +455,12 @@ module mkUART (UART_IFC);
 			      buser: wra.awuser};
       slave_xactor.i_wr_resp.enq (wrr);
 
-      if (cfg_verbosity > 1) begin
+      if (verbosity > 1) begin
 	 $display ("%0d: %m.rl_process_wr_req", cur_cycle);
-	 $display ("            ", fshow (wra));
-	 $display ("            ", fshow (wrd));
-	 $display ("            ", fshow (wrr));
+	 $display ("    ", fshow (wra));
+	 $display ("    ", fshow (wrd));
+	 $display ("    ", fshow (wrr));
+	 $display ("    UART reg [%0h] <= data %0h", offset [2:0], data_byte);
       end
    endrule
 
@@ -469,7 +478,7 @@ module mkUART (UART_IFC);
       let new_lsr = (rg_lsr | uart_lsr_dr);    // Set data-ready
       rg_lsr <= new_lsr;
 
-      if (cfg_verbosity > 1)
+      if (verbosity > 1)
 	 $display ("UART_Model.rl_receive: received char 0x%0h; new_lsr = 0x%0h",
 		   ch, new_lsr);
    endrule

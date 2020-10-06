@@ -4,8 +4,8 @@ package AXI4_Deburster;
 
 // ================================================================
 // This package defines a AXI4-slave-to-AXI4-slave conversion module.
-// The parameter interface is an AXI4-slave that carries no burst transactions.
-// The output interface is an AXI4-slave that carries burst transactions.
+// The master-side interface is an AXI4-slave that carries no burst transactions.
+// The slave-side interface is an AXI4-slave that carries burst transactions.
 
 // ================================================================
 // Bluespec library imports
@@ -44,15 +44,12 @@ endinterface
 
 // ================================================================
 // The Deburster module
-// The function parameter is an address-decode function, which
-// returns (True,  slave-port-num)  if address is mapped to slave-port-num
-//         (False, ?)               if address is unmapped to any slave port
 
 module mkAXI4_Deburster (AXI4_Deburster_IFC #(wd_id, wd_addr, wd_data, wd_user))
    provisos (Add #(a__, 8, wd_addr));
 
    // 0 quiet; 1: display start of burst; 2: display all traffic
-   Integer cfg_verbosity = 0;
+   Integer verbosity = 0;
 
    Reg #(Bool) rg_reset <- mkReg (True);
 
@@ -161,7 +158,8 @@ module mkAXI4_Deburster (AXI4_Deburster_IFC #(wd_id, wd_addr, wd_data, wd_user))
    // RESET
 
    rule rl_reset (rg_reset);
-      $display ("%0d: %m::AXI4_Deburster.rl_reset", cur_cycle);
+      if (verbosity >= 1)
+	 $display ("%0d: %m::AXI4_Deburster.rl_reset", cur_cycle);
       xactor_from_master.reset;
       xactor_to_slave.reset;
 
@@ -237,12 +235,12 @@ module mkAXI4_Deburster (AXI4_Deburster_IFC #(wd_id, wd_addr, wd_data, wd_user))
       rg_last_beat_waddr <= a_out.awaddr;
 
       // Debugging
-      if (cfg_verbosity > 0) begin
+      if (verbosity > 0) begin
 	 $display ("%0d: %m::AXI4_Deburster.rl_wr_xaction_master_to_slave: m -> s, beat %0d",
 		   cur_cycle, rg_w_beat_count);
 	 if (rg_w_beat_count == 0)
 	    $display ("    a_in : ", fshow (a_in));
-	 if ((rg_w_beat_count == 0) || (cfg_verbosity > 1)) begin
+	 if ((rg_w_beat_count == 0) || (verbosity > 1)) begin
 	    $display ("    d_in : ", fshow (d_in));
 	    $display ("    a_out: ", fshow (a_out));
 	    $display ("    d_out: ", fshow (d_out));
@@ -266,7 +264,7 @@ module mkAXI4_Deburster (AXI4_Deburster_IFC #(wd_id, wd_addr, wd_data, wd_user))
 	 // not last beat of burst
 	 rg_b_beat_count <= rg_b_beat_count + 1;
 
-	 if (cfg_verbosity > 1) begin
+	 if (verbosity > 1) begin
 	    $display ("%0d: %m::AXI4_Deburster.rl_wr_resp_slave_to_master: m <- s, beat %0d",
 		      cur_cycle, rg_b_beat_count);
 	    $display ("    Consuming and discarding beat %0d", rg_b_beat_count);
@@ -286,7 +284,7 @@ module mkAXI4_Deburster (AXI4_Deburster_IFC #(wd_id, wd_addr, wd_data, wd_user))
 	 rg_b_beat_count <= 0;
 	 rg_b_resp       <= axi4_resp_okay;
 
-	 if (cfg_verbosity > 1) begin
+	 if (verbosity > 1) begin
 	    $display ("%0d: %m::AXI4_Deburster.rl_wr_resp_slave_to_master: m <- s, beat %0d",
 		      cur_cycle, rg_b_beat_count);
 	    $display ("    b_in: ",  fshow (b_in));
@@ -334,12 +332,12 @@ module mkAXI4_Deburster (AXI4_Deburster_IFC #(wd_id, wd_addr, wd_data, wd_user))
       rg_last_beat_raddr <= a_out.araddr;
 
       // Debugging
-      if (cfg_verbosity > 0) begin
+      if (verbosity > 0) begin
 	 $display ("%0d: %m::AXI4_Deburster.rl_rd_xaction_master_to_slave: m -> s, addr %08x beat %0d",
 		   cur_cycle, a_out.araddr, rg_ar_beat_count);
 	 if (rg_ar_beat_count == 0)
 	    $display ("    a_in:  ", fshow (a_in));
-	 if ((rg_ar_beat_count == 0) || (cfg_verbosity > 1))
+	 if ((rg_ar_beat_count == 0) || (verbosity > 1))
 	    $display ("    a_out: ", fshow (a_out));
       end
 
@@ -368,10 +366,10 @@ module mkAXI4_Deburster (AXI4_Deburster_IFC #(wd_id, wd_addr, wd_data, wd_user))
       xactor_from_master.i_rd_data.enq (r_out);
 
       // Debugging
-      if (cfg_verbosity > 0) begin
+      if (verbosity > 0) begin
 	 $display ("%0d: %m::AXI4_Deburster.rl_rd_resp_slave_to_master: m <- s, beat %0d",
 		   cur_cycle, rg_r_beat_count);
-	 if ((rg_r_beat_count == 0) || (cfg_verbosity > 1)) begin
+	 if ((rg_r_beat_count == 0) || (verbosity > 1)) begin
 	    $display ("    r_in:  ", fshow (r_in));
 	    $display ("    r_out: ", fshow (r_out));
 	 end

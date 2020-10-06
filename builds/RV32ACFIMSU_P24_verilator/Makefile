@@ -7,6 +7,10 @@
 REPO ?= ../..
 ARCH ?= RV32ACFIMSU
 
+# Alternative cache organizations:
+# Default (no definition for CACHES)    L1 only, write-through policy
+# Define  CACHES=WB_L1                  L1 only, with write-back policy
+
 # ================================================================
 # RISC-V config macros passed into Bluespec 'bsc' compiler
 
@@ -19,6 +23,7 @@ BSC_COMPILATION_FLAGS += \
 	-D MULT_SYNTH    \
 	-D Near_Mem_Caches    \
 	-D FABRIC64    \
+	-D WATCH_TOHOST    \
 
 # Compilation flags and paths for Melodica
 BSC_COMPILATION_FLAGS += \

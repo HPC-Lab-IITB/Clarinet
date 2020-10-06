@@ -19,6 +19,7 @@ BSC_COMPILATION_FLAGS += \
 	-D MULT_SYNTH    \
 	-D Near_Mem_Caches    \
 	-D FABRIC64    \
+	-D WATCH_TOHOST    \
 
 # Compilation flags and paths for Melodica
 BSC_COMPILATION_FLAGS += \
