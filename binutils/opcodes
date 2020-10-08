@@ -188,6 +188,15 @@ fcvt.p.r  rd      19..15=0 24..20=0x11 31..27=0x0A rm    26..25=2 6..2=0x14 1..0
 # Load-Store instructions. 14..12 encodes the posit type
 plw       rd rs1 imm12 14..12=6 6..2=0x01 1..0=3
 psw       imm12hi rs1 rs2 imm12lo 14..12=6 6..2=0x09 1..0=3
+
+# Move (PPR -> GPR) instructions. Reuses f7 from analogous fmv.x.w instruction
+#                       24..20 encodes the src type (posit = 0x10)
+pmv.x.w   rd rs1 24..20=0x10 31..27=0x1C 14..12=0 26..25=0 6..2=0x14 1..0=3
+
+# Move (GPR -> PPR) instructions. Reuses f5 from analogous fmv.w.x instruction
+#                       26..25 encodes the src type (posit = 2)
+pmv.w.x   rd rs1 24..20=0 31..27=0x1E 14..12=0 26..25=2 6..2=0x14 1..0=3
+
 # Clarinet Extension -- END
 
 fle.s     rd rs1 rs2      31..27=0x14 14..12=0 26..25=0 6..2=0x14 1..0=3

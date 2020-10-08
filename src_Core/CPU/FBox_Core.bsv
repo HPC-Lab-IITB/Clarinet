@@ -303,6 +303,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    let isFMS_P       = (opc == op_FP) && (f7 == f7_FMS_P);
    let isFDA_P       = (opc == op_FP) && (f7 == f7_FDA_P);
    let isFDS_P       = (opc == op_FP) && (f7 == f7_FDS_P);
+   let isPMV_X_W     = (opc == op_FP) && (f7 == f7_PMV_X_W) && (rs2 == rs2_P);
+   let isPMV_W_X     = (opc == op_FP) && (f7 == f7_PMV_W_X);
 `endif
 
    // =============================================================
@@ -502,6 +504,28 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       positCore.server_core.request.put (
          tuple4 (tagged P pV1, tagged P pV2, ?, FDS_P));
       stateR <= FBOX_PBUSY;
+   endrule
+
+   // Move a posit value from GPR to PPR
+   rule doPMV_W_X ( validReq && isPMV_W_X );
+      if (verbosity > 1)
+         $display ("%0d: %m: doPMV_W_X ", cur_cycle);
+      Bit #(64) res = fv_nanbox (pack ( v1 ));
+      resultR     <= tagged Valid (tuple2 (res, 0));
+      stateR      <= FBOX_RSP;
+   endrule
+
+   // Move a posit value from PPR to GPR
+   rule doPMV_X_W ( validReq && isPMV_X_W );
+      if (verbosity > 1)
+         $display ("%0d: %m: doPMV_X_W ", cur_cycle);
+      // The PMV treats the data in the PPR and GPR as raw data and does not
+      // interpret it. So for this instruction we use the raw bits coming from
+      // the PPR
+      Bit #(64) res = signExtend ( v1[31:0] );
+
+      resultR     <= tagged Valid (tuple2 (res, 0));
+      stateR      <= FBOX_RSP;
    endrule
 `endif
 

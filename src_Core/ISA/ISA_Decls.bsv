@@ -692,7 +692,7 @@ typedef enum {
 Bit #(2) f2_S           = 2'b00;
 Bit #(2) f2_D           = 2'b01;
 `ifdef POSIT
-Bit #(2) f2_P           = 2'b10;          // Quills: f2 for Posits
+Bit #(2) f2_P           = 2'b10;          // Clarinet: f2 for Posits
 `endif
 Bit #(2) f2_Q           = 2'b11;
 
@@ -701,8 +701,8 @@ Bit #(2) f2_Q           = 2'b11;
 Bit #(5) rs2_S          = 5'h00;
 Bit #(5) rs2_D          = 5'h01;
 `ifdef POSIT
-Bit #(5) rs2_P          = 5'h10;          // Quills: rs2 for Posits
-Bit #(5) rs2_R          = 5'h11;          // Quills: rs2 for Quire
+Bit #(5) rs2_P          = 5'h10;          // Clarinet: rs2 for Posits
+Bit #(5) rs2_R          = 5'h11;          // Clarinet: rs2 for Quire
 `endif
 
 // Floating point Load-Store
@@ -733,10 +733,10 @@ Opcode   op_FNMADD      = 7'b10_01_111;
 Opcode   op_FP          = 7'b10_10_011;
 
 `ifdef POSIT
-Bit #(7) f7_FMA_P       = 7'h32; // Quills: Fused-Multiply-Accumulate
-Bit #(7) f7_FMS_P       = 7'h36; // Quills: Fused-Multiply-Subtract
-Bit #(7) f7_FDA_P       = 7'h3A; // Quills: Fused-Divide-Accumulate
-Bit #(7) f7_FDS_P       = 7'h3E; // Quills: Fused-Divide-Subtract
+Bit #(7) f7_FMA_P       = 7'h32; // Clarinet: Fused-Multiply-Accumulate
+Bit #(7) f7_FMS_P       = 7'h36; // Clarinet: Fused-Multiply-Subtract
+Bit #(7) f7_FDA_P       = 7'h3A; // Clarinet: Fused-Divide-Accumulate
+Bit #(7) f7_FDS_P       = 7'h3E; // Clarinet: Fused-Divide-Subtract
 `endif
 Bit #(7) f7_FADD_D      = 7'h1 ;
 Bit #(7) f7_FSUB_D      = 7'h5 ;
@@ -771,10 +771,12 @@ Bit #(7) f7_FCVT_S_LU   = 7'h68;
 Bit #(7) f7_FCVT_S_D    = 7'h20;
 Bit #(7) f7_FCVT_D_S    = 7'h21;
 `ifdef POSIT
-Bit #(7) f7_FCVT_P_S    = 7'h26;       // Quills: Float to Posit
-Bit #(7) f7_FCVT_S_P    = 7'h24;       // Quills: Posit to Float
-Bit #(7) f7_FCVT_P_R    = 7'h2A;       // Quills: Quire to Posit
-Bit #(7) f7_FCVT_R_P    = 7'h2A;       // Quills: Posit to Quire
+Bit #(7) f7_FCVT_P_S    = 7'h26;       // Clarinet: Float to Posit
+Bit #(7) f7_FCVT_S_P    = 7'h24;       // Clarinet: Posit to Float
+Bit #(7) f7_FCVT_P_R    = 7'h2A;       // Clarinet: Quire to Posit
+Bit #(7) f7_FCVT_R_P    = 7'h2A;       // Clarinet: Posit to Quire
+Bit #(7) f7_PMV_X_W     = 7'h70;       // Clarinet: Move PPR to GPR
+Bit #(7) f7_PMV_W_X     = 7'h7A;       // Clarinet: Move GPR to PPR
 `endif
 Bit #(7) f7_FCVT_W_D    = 7'h61;
 Bit #(7) f7_FCVT_WU_D   = 7'h61;
@@ -798,39 +800,34 @@ Bit #(7) f7_FCLASS_S    = 7'h70;
 function Bool fv_is_rd_in_GPR (Bit #(7) funct7, RegName rs2);
 
 `ifdef ISA_D
-    let is_FCVT_W_D  =    (funct7 == f7_FCVT_W_D)
-                       && (rs2 == 0);
-    let is_FCVT_WU_D =    (funct7 == f7_FCVT_WU_D)
-                       && (rs2 == 1);
+    let is_FCVT_W_D  = (funct7 == f7_FCVT_W_D) && (rs2 == 0);
+    let is_FCVT_WU_D = (funct7 == f7_FCVT_WU_D) && (rs2 == 1);
 `ifdef RV64
-    let is_FCVT_L_D  =    (funct7 == f7_FCVT_L_D)
-                       && (rs2 == 2);
-    let is_FCVT_LU_D =    (funct7 == f7_FCVT_LU_D)
-                       && (rs2 == 3);
+    let is_FCVT_L_D  = (funct7 == f7_FCVT_L_D) && (rs2 == 2);
+    let is_FCVT_LU_D = (funct7 == f7_FCVT_LU_D) && (rs2 == 3);
 
 `endif
    // FCLASS.D also maps to this -- both write to GPR
-   let is_FMV_X_D    =    (funct7 == f7_FMV_X_D);
+   let is_FMV_X_D    = (funct7 == f7_FMV_X_D);
    // FEQ.D, FLE.D, FLT.D map to this
-   let is_FCMP_D     =    (funct7 == f7_FCMP_D);
+   let is_FCMP_D     = (funct7 == f7_FCMP_D);
 `endif
 
-    let is_FCVT_W_S  =    (funct7 == f7_FCVT_W_S)
-                       && (rs2 == 0);
-    let is_FCVT_WU_S =    (funct7 == f7_FCVT_WU_S)
-                       && (rs2 == 1);
+    let is_FCVT_W_S  = (funct7 == f7_FCVT_W_S) && (rs2 == 0);
+    let is_FCVT_WU_S = (funct7 == f7_FCVT_WU_S) && (rs2 == 1);
 `ifdef RV64
-    let is_FCVT_L_S  =    (funct7 == f7_FCVT_L_S)
-                       && (rs2 == 2);
-    let is_FCVT_LU_S =    (funct7 == f7_FCVT_LU_S)
-                       && (rs2 == 3);
+    let is_FCVT_L_S  = (funct7 == f7_FCVT_L_S) && (rs2 == 2);
+    let is_FCVT_LU_S = (funct7 == f7_FCVT_LU_S) && (rs2 == 3);
 `endif
 
    // FCLASS.S also maps to this -- both write to GPR
-   let is_FMV_X_W    =    (funct7 == f7_FMV_X_W);
+   let is_FMV_X_W    = (funct7 == f7_FMV_X_W);
 
    // FEQ.S, FLE.S, FLT.S map to this
-   let is_FCMP_S     =    (funct7 == f7_FCMP_S);
+   let is_FCMP_S     = (funct7 == f7_FCMP_S);
+`ifdef POSIT
+   let is_PMV_X_W    = (funct7 == f7_PMV_X_W);
+`endif
 
     return (
           False
@@ -852,6 +849,9 @@ function Bool fv_is_rd_in_GPR (Bit #(7) funct7, RegName rs2);
        || is_FCVT_WU_S
        || is_FMV_X_W
        || is_FCMP_S
+`ifdef POSIT
+       || is_PMV_X_W
+`endif
     );
 endfunction
 
@@ -895,7 +895,7 @@ function Bool fv_is_fp_instr_legal (
 `else
       return (f2 == f2_S);                   // Only SP is legal
 `endif
-   // Quills: FMA.P instruction is only legal for posits
+   // Clarinet: FMA.P instruction is only legal for posits
    else
       if (    (f7 == f7_FADD_S)  
           ||  (f7 == f7_FSUB_S)  
@@ -974,6 +974,8 @@ function Bool fv_is_fp_instr_legal (
           || ((f7 == f7_FCVT_S_P) && (rs2 == rs2_P))
           || ((f7 == f7_FCVT_P_R) && (rs2 == rs2_R))
           || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_P))
+          || ((f7 == f7_PMV_X_W) && (rs2 == rs2_P))
+          || (f7 == f7_PMV_W_X)
 `endif
          ) return True;
       else return False;
@@ -1001,6 +1003,9 @@ function Bool fv_fp_val1_from_gpr (Opcode opcode, Bit#(7) f7, RegName rs2);
           || ((f7 == f7_FCVT_S_LU) && (rs2 == 3))
 `endif
           || ((f7 == f7_FMV_W_X))
+`ifdef POSIT
+          || ((f7 == f7_PMV_W_X))
+`endif
           )
    );
 endfunction
@@ -1014,8 +1019,7 @@ function Bool fv_is_destn_in_quire (Opcode opc, Bit #(7) f7, RegName rs2);
                || (f7 == f7_FMS_P)
                || (f7 == f7_FDA_P)
                || (f7 == f7_FDS_P)
-               || (   (f7 == f7_FCVT_R_P)
-                   && (rs2 == rs2_P))));
+               || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_P))));
 endfunction
 
 // Posit instructions which takes no operands from the FPR or GPR
@@ -1028,8 +1032,10 @@ endfunction
 function Bool fv_is_rd_in_PPR (Opcode opc, Bit #(7) f7, RegName rs2);
    return (   (opc == op_FP)
            && (   (f7 == f7_FCVT_P_S)
-               || (   (f7 == f7_FCVT_P_R)
-                   && (rs2 == rs2_R))));
+               || ((f7 == f7_FCVT_P_R) && (rs2 == rs2_R))
+               || (f7 == f7_PMV_W_X)
+              )
+          );
 endfunction
 `endif
 `endif
