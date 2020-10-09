@@ -52,6 +52,10 @@ instructions. The actual source for the gcc tools are in another repository.
    #define MASK_PLW  0x707f
    #define MATCH_PSW 0x6027
    #define MASK_PSW  0x707f
+   #define MATCH_PMV_X_W 0xe1000053
+   #define MASK_PMV_X_W  0xfff0707f
+   #define MATCH_PMV_W_X 0xf4000053
+   #define MASK_PMV_W_X  0xfff0707f
 
 ---------------------------------------------------------------------
 STEP 2: Modify the binutils source files to recognize the new instructions
