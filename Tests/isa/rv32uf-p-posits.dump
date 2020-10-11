@@ -129,8 +129,8 @@ Disassembly of section .text.init:
 800001bc:	e0018553          	fmv.x.w	a0,ft3
 800001c0:	001015f3          	fsflags	a1,zero
 800001c4:	00000613          	li	a2,0
-800001c8:	12d51a63          	bne	a0,a3,800002fc <fail>
-800001cc:	12c59863          	bne	a1,a2,800002fc <fail>
+800001c8:	16d51663          	bne	a0,a3,80000334 <fail>
+800001cc:	16c59463          	bne	a1,a2,80000334 <fail>
 
 800001d0 <test_3>:
 800001d0:	00300193          	li	gp,3
@@ -151,8 +151,8 @@ Disassembly of section .text.init:
 8000020c:	e0018553          	fmv.x.w	a0,ft3
 80000210:	001015f3          	fsflags	a1,zero
 80000214:	00000613          	li	a2,0
-80000218:	0ed51263          	bne	a0,a3,800002fc <fail>
-8000021c:	0ec59063          	bne	a1,a2,800002fc <fail>
+80000218:	10d51e63          	bne	a0,a3,80000334 <fail>
+8000021c:	10c59c63          	bne	a1,a2,80000334 <fail>
 
 80000220 <test_4>:
 80000220:	00400193          	li	gp,4
@@ -173,8 +173,8 @@ Disassembly of section .text.init:
 8000025c:	e0018553          	fmv.x.w	a0,ft3
 80000260:	001015f3          	fsflags	a1,zero
 80000264:	00000613          	li	a2,0
-80000268:	08d51a63          	bne	a0,a3,800002fc <fail>
-8000026c:	08c59863          	bne	a1,a2,800002fc <fail>
+80000268:	0cd51663          	bne	a0,a3,80000334 <fail>
+8000026c:	0cc59463          	bne	a1,a2,80000334 <fail>
 
 80000270 <test_5>:
 80000270:	00500193          	li	gp,5
@@ -195,8 +195,8 @@ Disassembly of section .text.init:
 800002ac:	e0018553          	fmv.x.w	a0,ft3
 800002b0:	001015f3          	fsflags	a1,zero
 800002b4:	00000613          	li	a2,0
-800002b8:	04d51263          	bne	a0,a3,800002fc <fail>
-800002bc:	04c59063          	bne	a1,a2,800002fc <fail>
+800002b8:	06d51e63          	bne	a0,a3,80000334 <fail>
+800002bc:	06c59c63          	bne	a1,a2,80000334 <fail>
 
 800002c0 <test_6>:
 800002c0:	00600193          	li	gp,6
@@ -211,32 +211,52 @@ Disassembly of section .text.init:
 800002e4:	e00005d3          	fmv.x.w	a1,ft0
 800002e8:	00101673          	fsflags	a2,zero
 800002ec:	00000693          	li	a3,0
-800002f0:	00b51663          	bne	a0,a1,800002fc <fail>
-800002f4:	00d61463          	bne	a2,a3,800002fc <fail>
-800002f8:	02301063          	bne	zero,gp,80000318 <pass>
+800002f0:	04b51263          	bne	a0,a1,80000334 <fail>
+800002f4:	04d61063          	bne	a2,a3,80000334 <fail>
 
-800002fc <fail>:
-800002fc:	0ff0000f          	fence
-80000300:	00018063          	beqz	gp,80000300 <fail+0x4>
-80000304:	00119193          	slli	gp,gp,0x1
-80000308:	0011e193          	ori	gp,gp,1
-8000030c:	05d00893          	li	a7,93
-80000310:	00018513          	mv	a0,gp
-80000314:	00000073          	ecall
+800002f8 <test_7>:
+800002f8:	00700193          	li	gp,7
+800002fc:	00002517          	auipc	a0,0x2
+80000300:	d4c50513          	addi	a0,a0,-692 # 80002048 <test_7_data>
+80000304:	00052007          	flw	ft0,0(a0)
+80000308:	4c0071d3          	fcvt.p.s	ft3,ft0
+8000030c:	e10185d3          	pmv.x.w	a1,ft3
+80000310:	f40581d3          	pmv.w.x	ft3,a1
+80000314:	4901f0d3          	fcvt.s.p	ft1,ft3
+80000318:	e0008553          	fmv.x.w	a0,ft1
+8000031c:	e00005d3          	fmv.x.w	a1,ft0
+80000320:	00101673          	fsflags	a2,zero
+80000324:	00000693          	li	a3,0
+80000328:	00b51663          	bne	a0,a1,80000334 <fail>
+8000032c:	00d61463          	bne	a2,a3,80000334 <fail>
+80000330:	02301063          	bne	zero,gp,80000350 <pass>
 
-80000318 <pass>:
-80000318:	0ff0000f          	fence
-8000031c:	00100193          	li	gp,1
-80000320:	05d00893          	li	a7,93
-80000324:	00000513          	li	a0,0
-80000328:	00000073          	ecall
-8000032c:	c0001073          	unimp
-80000330:	0000                	unimp
-80000332:	0000                	unimp
-80000334:	0000                	unimp
-80000336:	0000                	unimp
-80000338:	0000                	unimp
-8000033a:	0000                	unimp
+80000334 <fail>:
+80000334:	0ff0000f          	fence
+80000338:	00018063          	beqz	gp,80000338 <fail+0x4>
+8000033c:	00119193          	slli	gp,gp,0x1
+80000340:	0011e193          	ori	gp,gp,1
+80000344:	05d00893          	li	a7,93
+80000348:	00018513          	mv	a0,gp
+8000034c:	00000073          	ecall
+
+80000350 <pass>:
+80000350:	0ff0000f          	fence
+80000354:	00100193          	li	gp,1
+80000358:	05d00893          	li	a7,93
+8000035c:	00000513          	li	a0,0
+80000360:	00000073          	ecall
+80000364:	c0001073          	unimp
+80000368:	0000                	unimp
+8000036a:	0000                	unimp
+8000036c:	0000                	unimp
+8000036e:	0000                	unimp
+80000370:	0000                	unimp
+80000372:	0000                	unimp
+80000374:	0000                	unimp
+80000376:	0000                	unimp
+80000378:	0000                	unimp
+8000037a:	0000                	unimp
 
 Disassembly of section .data:
 
@@ -285,7 +305,9 @@ Disassembly of section .data:
 80002042:	4020                	lw	s0,64(s0)
 80002044:	0000                	unimp
 80002046:	4020                	lw	s0,64(s0)
+
+80002048 <test_7_data>:
 80002048:	0000                	unimp
-8000204a:	0000                	unimp
+8000204a:	4020                	lw	s0,64(s0)
 8000204c:	0000                	unimp
-8000204e:	0000                	unimp
+8000204e:	4020                	lw	s0,64(s0)
