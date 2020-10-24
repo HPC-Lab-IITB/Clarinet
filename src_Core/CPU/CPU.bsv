@@ -310,11 +310,11 @@ module mkCPU (CPU_IFC);
    // ================================================================
    // Debugging: print instruction trace info
 
-   function Action fa_emit_instr_trace (Bit #(64) instret, WordXL pc, Instr instr, Priv_Mode priv);
+   function Action fa_emit_instr_trace (Bit #(64) cycle, Bit #(64) instret, WordXL pc, Instr instr, Priv_Mode priv);
       action
 	 if ((cur_verbosity >= 1) || ((instret & 'h_F_FFFF) == 0))
-	    $display ("instret:%0d  PC:0x%0h  instr:0x%0h  priv:%0d",
-		      instret, pc, instr, priv);
+	    $display ("(%06d): instret:%0d  PC:0x%0h  instr:0x%0h  priv:%0d",
+		      cycle, instret, pc, instr, priv);
       endaction
    endfunction
 
@@ -679,7 +679,7 @@ module mkCPU (CPU_IFC);
 	 // Note: this instr cannot be a CSRRx updating INSTRET, since
 	 // CSRRx is done off-pipe
 	 csr_regfile.csr_minstret_incr;
-	 fa_emit_instr_trace (minstret, stage2.out.data_to_stage3.pc, stage2.out.data_to_stage3.instr, rg_cur_priv);
+	 fa_emit_instr_trace (mcycle, minstret, stage2.out.data_to_stage3.pc, stage2.out.data_to_stage3.instr, rg_cur_priv);
       end
 
       // ----------------
@@ -885,7 +885,7 @@ module mkCPU (CPU_IFC);
       end
 `endif
 
-      fa_emit_instr_trace (minstret, epc, instr, rg_cur_priv);
+      fa_emit_instr_trace (mcycle, minstret, epc, instr, rg_cur_priv);
 
       // Debug
       if (cur_verbosity != 0)
@@ -999,7 +999,7 @@ module mkCPU (CPU_IFC);
 `endif
 
 	 // Debug
-	 fa_emit_instr_trace (minstret, rg_csr_pc, instr, rg_cur_priv);
+	 fa_emit_instr_trace (mcycle, minstret, rg_csr_pc, instr, rg_cur_priv);
 	 if (cur_verbosity > 1) begin
 	    $display ("    S1: write CSRRW/CSRRWI Rs1 %0d Rs1_val 0x%0h csr 0x%0h csr_val 0x%0h Rd %0d",
 		      rs1, rs1_val, csr_addr, csr_val, rd);
@@ -1119,7 +1119,7 @@ module mkCPU (CPU_IFC);
 `endif
 
 	 // Debug
-	 fa_emit_instr_trace (minstret, rg_csr_pc, instr, rg_cur_priv);
+	 fa_emit_instr_trace (mcycle, minstret, rg_csr_pc, instr, rg_cur_priv);
 	 if (cur_verbosity > 1) begin
 	    $display ("    S1: write CSRR_S_or_C: Rs1 %0d Rs1_val 0x%0h csr 0x%0h csr_val 0x%0h Rd %0d",
 		      rs1, rs1_val, csr_addr, csr_val, rd);
@@ -1184,7 +1184,7 @@ module mkCPU (CPU_IFC);
 `endif
 
       // Debug
-      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
+      fa_emit_instr_trace (mcycle, minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
       if (cur_verbosity != 0)
 	 $display ("    xRET: next_pc:0x%0h  new mstatus:0x%0h  new priv:%0d", next_pc, new_mstatus, new_priv);
    endrule: rl_stage1_xRET
@@ -1219,7 +1219,7 @@ module mkCPU (CPU_IFC);
       // Accounting
       csr_regfile.csr_minstret_incr;
       // Debug
-      fa_emit_instr_trace (minstret,
+      fa_emit_instr_trace (mcycle, minstret,
 			   stage1.out.data_to_stage2.pc,
 			   stage1.out.data_to_stage2.instr,
 			   rg_cur_priv);
@@ -1262,7 +1262,7 @@ module mkCPU (CPU_IFC);
       // Accounting
       csr_regfile.csr_minstret_incr;
       // Debug
-      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc,
+      fa_emit_instr_trace (mcycle, minstret, stage1.out.data_to_stage2.pc,
 			   stage1.out.data_to_stage2.instr,
 			   rg_cur_priv);
 `ifdef INCLUDE_TANDEM_VERIF
@@ -1315,7 +1315,7 @@ module mkCPU (CPU_IFC);
       // Accounting
       csr_regfile.csr_minstret_incr;
       // Debug
-      fa_emit_instr_trace (minstret,
+      fa_emit_instr_trace (mcycle, minstret,
 			   stage1.out.data_to_stage2.pc,
 			   stage1.out.data_to_stage2.instr,
 			   rg_cur_priv);
@@ -1359,7 +1359,7 @@ module mkCPU (CPU_IFC);
 `endif
 
       // Debug
-      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
+      fa_emit_instr_trace (mcycle, minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
       if (cur_verbosity > 1)
 	 $display ("    CPU.rl_stage1_WFI");
    endrule: rl_stage1_WFI
