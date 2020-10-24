@@ -4,6 +4,3 @@
 [submodule "riscv-tests"]
 	path = riscv-tests
 	url = https://github.com/HPC-Lab-IITB/riscv-tests
-[submodule "applications/Optical-Flow"]
-	path = applications/Optical-Flow
-	url = https://github.com/scivision/Optical-Flow-LucasKanade-HornSchunck
