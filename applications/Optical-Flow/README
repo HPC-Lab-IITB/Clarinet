@@ -1,0 +1,5 @@
+This optical flow example has been translitered based on the work at:
+
+   https://github.com/scivision/Optical-Flow-LucasKanade-HornSchunck
+
+Their work was in python, but as the Clarinet bare-metal platform we are testing on does not support python, the program has been transliterated into C.
