@@ -523,7 +523,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       // The PMV treats the data in the PPR and GPR as raw data and does not
       // interpret it. So for this instruction we use the raw bits coming from
       // the PPR
-      Bit #(64) res = signExtend ( pV1[31:0] );
+      Bit #(64) res = signExtend ( pV1 );
 
       resultR     <= tagged Valid (tuple2 (res, 0));
       stateR      <= FBOX_RSP;
