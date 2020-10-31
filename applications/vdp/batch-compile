@@ -1,0 +1,122 @@
+#!/usr/bin/python3
+import os
+import sys
+import shutil
+import subprocess
+import logging
+import datetime
+
+"""
+Compiles all the different variants of the VDP program 
+Ensure that you the RV tools in your path
+"""
+
+CWD = os.getcwd ()
+#------------------------
+"""
+Create a logger
+"""
+def fn_createLogger (debug, thisScript):
+    # Create a journal file to log all activity from this run
+    now = datetime.datetime.now ()
+    journalFName = thisScript + '-' + now.strftime("%Y%m%d_%H%M") + ".jou"
+    journalPath  = os.path.join (CWD, journalFName)
+    if debug == True :
+        logging.basicConfig (
+                  filename=journalPath
+                , filemode='w'
+                , level=logging.DEBUG
+                , format='[%(asctime)s][%(levelname)5s] %(message)s'
+                , datefmt='%H:%M:%S')
+    else :
+        logging.basicConfig (
+                  filename=journalPath
+                , filemode='w'
+                , level=logging.INFO
+                , format='[%(asctime)s][%(levelname)5s] %(message)s'
+                , datefmt='%H:%M:%S')
+
+    # Define a Handler which writes INFO messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+
+    # set a format for console logs (simplified - no time-stamp)
+    formatter = logging.Formatter('[%(levelname)5s]: %(message)s')
+
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+
+    # Add the handler to the root logger
+    logging.getLogger('').addHandler(console)
+    return
+    
+
+def main (argv) :
+    fn_createLogger (True, 'batch-compile') 
+    types = ['FLOAT', 'FLOAT_POSIT', 'POSIT']
+    reps  = [8, 16, 32, 64, 128, 256]
+    files_to_move = ['vdp', 'vdp.dump']
+
+    makeLogFile = os.path.join(CWD, "make.log")
+    try : makeLog = open (makeLogFile, "w")
+    except :
+        logging.error ("Unable to open '%s' for writing", makeLogFile)
+        sys.exit (1)
+
+    main_val = 'MAIN=vdp'
+    for type in types :
+        type_val = 'TYPE='+type
+
+        if type == 'POSIT' : pwidths = [8, 16, 24, 32]
+        else : pwidths = [8]
+
+        for pw in pwidths :
+            pw_val = 'PWIDTH=PWIDTH_'+str(pw)
+            for rep in reps :
+                rep_val = 'REP='+str(rep)
+                logging.info ("make %s %s %s %s all", main_val, type_val, rep_val, pw_val)
+                makeID = subprocess.Popen (
+                                [     "/usr/bin/make"
+                                    , main_val
+                                    , type_val
+                                    , rep_val
+                                    , pw_val
+                                    , 'all'
+                                ]
+                            , stdout=makeLog
+                            , stderr=subprocess.STDOUT
+                            , cwd=CWD)
+                makeID.wait()
+
+                if makeID.returncode == 0 :
+                    logging.info ("Success")
+                    # Name the executable and dump as per configuration
+                    for f in files_to_move :
+                        if type == 'POSIT' : new_file = f + '.' + type + '-' + str(pw) + '.' + str(rep) 
+                        else : new_file = f + '.' + type + '.' + str(rep)
+                        shutil.move (os.path.join (CWD, f), os.path.join (CWD, new_file))
+                        logging.debug ("mv %s %s", os.path.join (CWD, f), os.path.join (CWD, new_file))
+
+                    # Clean up
+                    makeID = subprocess.Popen (
+                                    [     "/usr/bin/make"
+                                        , main_val
+                                        , type_val
+                                        , rep_val
+                                        , 'clean'
+                                    ]
+                                , stdout=makeLog
+                                , stderr=subprocess.STDOUT
+                                , cwd=CWD)
+                    makeID.wait()
+
+                else : logging.error ("Failure")
+
+    makeLog.close ()
+    return 0
+
+# ================================================================
+# For non-interactive invocations, call main() and use its return value
+# as the exit code.
+if __name__ == '__main__':
+  sys.exit (main (sys.argv))

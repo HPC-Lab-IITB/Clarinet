@@ -52,7 +52,7 @@ CFLAGS += -I../lib
 
 # needed for riscv_counters.c
 CFLAGS += -DRV$(XLEN)
-
+CFLAGS += $(APP_FLAGS)
 
 LDLIBS += -lm
 
@@ -90,7 +90,7 @@ all: $(MAIN) objdump
 
 .PHONY:clean
 clean:
-	$(RM) $(MAIN) *.o
+	$(RM) $(MAIN) *.o $(MAIN).dump
 
 $(MAIN).o: uart.o startup.o syscalls.o riscv_counters.o clarinet.o
 
