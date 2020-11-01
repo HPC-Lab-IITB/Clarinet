@@ -90,7 +90,11 @@ all: $(MAIN) objdump
 
 .PHONY:clean
 clean:
-	$(RM) $(MAIN) *.o $(MAIN).dump
+	$(RM) *.o
+
+.PHONY:full_clean
+full_clean: clean
+	$(RM) $(MAIN) *.elf *.dump
 
 $(MAIN).o: uart.o startup.o syscalls.o riscv_counters.o clarinet.o
 
