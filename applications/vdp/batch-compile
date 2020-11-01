@@ -75,8 +75,8 @@ def main (argv) :
     for type in types :
         type_val = 'TYPE='+type
 
-        if type == 'POSIT' : pwidths = [8, 16, 24, 32]
-        else : pwidths = [8]
+        if type == 'FLOAT' : pwidths = [8]
+        else               : pwidths = [8, 16, 24, 32]
 
         for pw in pwidths :
             pw_val = 'PWIDTH=PWIDTH_'+str(pw)
@@ -100,8 +100,8 @@ def main (argv) :
                     logging.info ("App build: Success")
                     # Name the executable and dump as per configuration
                     for f in files_to_move :
-                        if type == 'POSIT' : prefix = type + '-' + str(pw) + '.' + str(rep) 
-                        else : prefix = type + '.' + str(rep)
+                        if type == 'FLOAT' : prefix = type + '.' + str(rep)
+                        else               : prefix = type + '-' + str(pw) + '.' + str(rep) 
                         if f == 'vdp' :
                             new_file = prefix + '.' + 'vdp.elf'
                             test_elf_name = new_file
@@ -148,8 +148,8 @@ def main (argv) :
                     simLog.write ("\n\n")
 
                     # Save the vcd dumps for further processing
-                    if type == 'POSIT' : vcd_saved_dir = type+'-'+str(pw)+'.'+str(rep)+'.vcd'
-                    else :               vcd_saved_dir = type+'.'+str(rep)+'.vcd'
+                    if type == 'FLOAT' : vcd_saved_dir = type+'.'+str(rep)+'.vcd'
+                    else               : vcd_saved_dir = type+'-'+str(pw)+'.'+str(rep)+'.vcd'
                     shutil.copytree (os.path.join (hw_dir_path, 'vcd'), os.path.join (CWD, vcd_saved_dir))
                     shutil.rmtree (os.path.join (hw_dir_path, 'vcd'))
                     logging.info ("Saving VCD files to %s", os.path.join (CWD, vcd_saved_dir))

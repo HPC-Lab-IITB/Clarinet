@@ -1,0 +1,18 @@
+# This makefile builds all the different Clarinet flavours
+#
+# Invocation: make -f Makefile.Clarinet
+#
+all : RV32ACFIMSU RV32ACFIMSU_FDIV_P32 RV32ACFIMSU_P8 RV32ACFIMSU_P16 RV32ACFIMSU_P24 RV32ACFIMSU_P32
+
+RV32ACFIMSU :
+	make -C $@_verilator all
+RV32ACFIMSU_FDIV_P32 :
+	make -C $@_verilator all
+RV32ACFIMSU_P8 :
+	make -C $@_verilator all
+RV32ACFIMSU_P16 :
+	make -C $@_verilator all
+RV32ACFIMSU_P24 :
+	make -C $@_verilator all
+RV32ACFIMSU_P32 :
+	make -C $@_verilator all
