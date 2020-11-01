@@ -7,11 +7,13 @@ import logging
 import datetime
 
 """
-Compiles all the different variants of the VDP program 
-Ensure that you the RV tools in your path
+Compiles all the different variants of the VDP program, and then runs each of them in simulations.
+Ensure that you the RV tools in your path, and the verilator simulator executables are already created.
 """
 
 CWD = os.getcwd ()
+HW_BDIR = os.path.join (CWD, '..', '..', 'builds')
+
 #------------------------
 """
 Create a logger
@@ -63,6 +65,12 @@ def main (argv) :
         logging.error ("Unable to open '%s' for writing", makeLogFile)
         sys.exit (1)
 
+    simLogFile = os.path.join(CWD, "sim.log")
+    try : simLog = open (simLogFile, "w")
+    except :
+        logging.error ("Unable to open '%s' for writing", simLogFile)
+        sys.exit (1)
+
     main_val = 'MAIN=vdp'
     for type in types :
         type_val = 'TYPE='+type
@@ -89,11 +97,17 @@ def main (argv) :
                 makeID.wait()
 
                 if makeID.returncode == 0 :
-                    logging.info ("Success")
+                    logging.info ("App build: Success")
                     # Name the executable and dump as per configuration
                     for f in files_to_move :
-                        if type == 'POSIT' : new_file = f + '.' + type + '-' + str(pw) + '.' + str(rep) 
-                        else : new_file = f + '.' + type + '.' + str(rep)
+                        if type == 'POSIT' : prefix = type + '-' + str(pw) + '.' + str(rep) 
+                        else : prefix = type + '.' + str(rep)
+                        if f == 'vdp' :
+                            new_file = prefix + '.' + 'vdp.elf'
+                            test_elf_name = new_file
+                        else :
+                            new_file = prefix + '.' + f
+
                         shutil.move (os.path.join (CWD, f), os.path.join (CWD, new_file))
                         logging.debug ("mv %s %s", os.path.join (CWD, f), os.path.join (CWD, new_file))
 
@@ -110,9 +124,40 @@ def main (argv) :
                                 , cwd=CWD)
                     makeID.wait()
 
-                else : logging.error ("Failure")
+                    # Run the simulation
+                    if type == 'FLOAT' : hw_dir_name = 'RV32ACFIMSU_verilator'                # do not include Posit HW for a pure FP run
+                    else :               hw_dir_name = 'RV32ACFIMSU_P'+str(pw)+'_verilator'
+                    hw_dir_path = os.path.join (HW_BDIR, hw_dir_name)
+                    test_path = os.path.join (CWD, test_elf_name)
+                    example_val = 'EXAMPLE='+test_path
+                    logging.info ("Simulating %s on %s", test_elf_name, hw_dir_name)
+                    simLog.write ("-------- Simulating %s on %s --------\n" %(test_elf_name, hw_dir_name))
+
+                    simID = subprocess.Popen (
+                              [     '/usr/bin/make'
+                                  , '-f'
+                                  , os.path.join (hw_dir_path, 'Makefile')
+                                  , 'run_example'
+                                  , example_val
+                                  ]
+                            , stdout=simLog
+                            , stderr=subprocess.STDOUT
+                            , cwd = hw_dir_path
+                            )
+                    simID.wait ()
+                    simLog.write ("\n\n")
+
+                    # Save the vcd dumps for further processing
+                    if type == 'POSIT' : vcd_saved_dir = type+'-'+str(pw)+'.'+str(rep)+'.vcd'
+                    else :               vcd_saved_dir = type+'.'+str(rep)+'.vcd'
+                    shutil.copytree (os.path.join (hw_dir_path, 'vcd'), os.path.join (CWD, vcd_saved_dir))
+                    shutil.rmtree (os.path.join (hw_dir_path, 'vcd'))
+                    logging.info ("Saving VCD files to %s", os.path.join (CWD, vcd_saved_dir))
+
+                else : logging.error ("App build: Failure")
 
     makeLog.close ()
+    simLog.close ()
     return 0
 
 # ================================================================
