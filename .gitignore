@@ -20,3 +20,5 @@ worker_*
 log_*.txt
 Verilog_RTL
 *.dump
+*jou
+*.elf
