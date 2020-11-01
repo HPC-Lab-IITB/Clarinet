@@ -12,13 +12,17 @@
 
 .PHONY: help
 help:
-	@echo '    make  compile      Recompile Core (CPU, caches)'
+	@echo '    make  compile      Recompile System (CPU, caches, SoC)'
+	@echo '                           NOTE: needs Bluespec bsc compiler'
+	@echo '                           For Bluesim: generates Bluesim intermediate files'
+	@echo '                           For Verilog simulation: generates RTL'
+	@echo '    make  cpu          Recompile CPU (CPU, caches)'
 	@echo '                           NOTE: needs Bluespec bsc compiler'
 	@echo '                           For Bluesim: generates Bluesim intermediate files'
 	@echo '                           For Verilog simulation: generates RTL'
 	@echo '    make  simulator    Compiles and links intermediate files/RTL to create simulation executable'
 	@echo '                           (Bluesim, verilator or iverilog)'
-	@echo '    make  all          = make  compile  simulator'
+	@echo '    make  all          = make  compile cpu simulator'
 	@echo ''
 	@echo '    make  run_example  Runs simulation executable on ELF given by EXAMPLE'
 	@echo ''
@@ -29,7 +33,7 @@ help:
 	@echo '    make  full_clean   Restore to pristine state (pre-building anything)'
 
 .PHONY: all
-all: compile  simulator
+all: compile cpu simulator
 
 # ================================================================
 # Near-mem (Cache and optional MMU for VM)
@@ -68,6 +72,7 @@ BSC_PATH = $(CUSTOM_DIRS):$(CORE_DIRS):$(CUSTOM_TB_DIRS):$(TESTBENCH_DIRS):+
 # Top-level file and module
 
 TOPFILE   ?= $(REPO)/src_Testbench/Top/Top_HW_Side.bsv
+CPUTOP    ?= $(REPO)/src_Core/CPU/CPU.bsv
 TOPMODULE ?= mkTop_HW_Side
 
 # ================================================================
@@ -88,7 +93,7 @@ EXAMPLE ?= PLEASE_DEFINE_EXAMPLE_PATH_TO_ELF
 run_example:
 	make -C  $(TESTS_DIR)/elf_to_hex
 	$(TESTS_DIR)/elf_to_hex/elf_to_hex  $(EXAMPLE)  Mem.hex
-	./exe_HW_sim  $(VERBOSITY)  +exit +tohost
+	./exe_HW_sim  $(VERBOSITY)  +exit +tohost +trace
 
 # ================================================================
 # Test: run the executable on the standard RISCV ISA test specified in TEST
@@ -121,6 +126,6 @@ clean:
 
 .PHONY: full_clean
 full_clean: clean
-	rm -r -f  $(SIM_EXE_FILE)*  *.log  *.vcd  *.hex  worker* Logs/ Verilog_RTL/*
+	rm -r -f  $(SIM_EXE_FILE)*  *.log  *.vcd  *.hex  worker* Logs/ Verilog_RTL/* CPU_RTL/*
 
 # ================================================================

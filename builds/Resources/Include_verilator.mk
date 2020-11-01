@@ -9,10 +9,15 @@
 
 RTL_GEN_DIRS = -vdir Verilog_RTL  -bdir build_dir  -info-dir build_dir
 
+CPU_GEN_DIRS = -vdir CPU_RTL -bdir build_dir -info-dir build_dir
+
 build_dir:
 	mkdir -p $@
 
 Verilog_RTL:
+	mkdir -p $@
+
+CPU_RTL:
 	mkdir -p $@
 
 .PHONY: compile
@@ -20,6 +25,15 @@ compile:  build_dir  Verilog_RTL
 	@echo  "INFO: Verilog RTL generation ..."
 	bsc -u -elab -verilog  $(RTL_GEN_DIRS)  $(BSC_COMPILATION_FLAGS)  -p $(BSC_PATH)  $(TOPFILE)
 	@echo  "INFO: Verilog RTL generation finished"
+
+.PHONY: cpu
+cpu:  build_dir  CPU_RTL
+	@echo  "INFO: RTL generation only for the CPU hierarchy..."
+	bsc -u -elab -verilog  $(CPU_GEN_DIRS)  $(BSC_COMPILATION_FLAGS)  -p $(BSC_PATH)  $(CPUTOP)
+	@echo  "INFO: Verilog RTL generation for the CPU finished"
+	@for f in $(shell ls CPU_RTL); do cp Verilog_RTL/$${f} CPU_RTL/$${f}; done
+	@echo  "INFO: Copied Verilog_RTL into CPU_RTL"
+
 
 # ================================================================
 # Compile and link Verilog RTL sources into an verilator executable
@@ -38,7 +52,7 @@ VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-i
 
 # Verilator flags: use the following to include code to generate VCDs
 # Select trace-depth according to your module hierarchy
-# VERILATOR_FLAGS += --trace  --trace-depth 2  -CFLAGS -DVM_TRACE
+VERILATOR_FLAGS += --trace  --trace-depth 100  -CFLAGS -DVM_TRACE
 
 VTOP                = V$(TOPMODULE)_edited
 VERILATOR_RESOURCES = $(REPO)/builds/Resources/Verilator_resources
