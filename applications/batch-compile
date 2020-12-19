@@ -163,11 +163,8 @@ def main (argv) :
         makeLog.close ()
 
     if do_sim :
-        simLogFile = os.path.join(CWD, "sim.log")
-        try : simLog = open (simLogFile, "w")
-        except :
-            logging.error ("Unable to open '%s' for writing", simLogFile)
-            sys.exit (1)
+        log_dir = os.path.join (CWD, 'logs')
+        os.mkdir (log_dir)
 
         for data_type in data_types :
             data_type_val = 'TYPE='+data_type
@@ -181,20 +178,34 @@ def main (argv) :
                     rep_val = 'REP='+str(rep)
 
                     # Run the simulation
-                    # do not include Posit HW for a pure FP run 
-                    if data_type == 'FLOAT' : hw_dir_name = 'RV32ACFIMSU_verilator'
-                    else                    : hw_dir_name = 'RV32ACFIMSU_P'+str(pw)+'_verilator'
+
+                    # ------
+                    # do not include Posit HW for a pure FP run. Sort out the hw directory and
+                    # the simulation log file name
+                    if data_type == 'FLOAT' :
+                        hw_dir_name = 'RV32ACFIMSU_verilator'
+                        simLogFile = os.path.join (log_dir, (data_type+'.'+str(rep)+'.log'))
+
+                    else :
+                        hw_dir_name = 'RV32ACFIMSU_P'+str(pw)+'_verilator'
+                        simLogFile = os.path.join (log_dir, (data_type+'-'+str(pw)+'.'+str(rep)+'.log'))
 
                     hw_dir_path = os.path.join (HW_BDIR, hw_dir_name)
 
+                    try :
+                        simLog = open (simLogFile, 'w')
+                    except :
+                        logging.error ("Could not open '%s' for writing", simLogFile)
+                        sys.exit (1)
+
+                    # ------
                     # get the name of the .elf file by applying the renaming recipe
                     test_elf_name = fn_rename_files (main_prog, main_prog, data_type, pw, rep)
                     test_path = os.path.join (CWD, test_elf_name)
                     example_val = 'EXAMPLE='+test_path
 
+                    # ------
                     logging.info ("Simulating %s on %s", test_elf_name, hw_dir_name)
-                    simLog.write ("-------- Simulating %s on %s --------\n"
-                            %(test_elf_name, hw_dir_name))
 
                     simID = subprocess.Popen (
                               [     '/usr/bin/make'
@@ -208,19 +219,11 @@ def main (argv) :
                             , cwd = hw_dir_path
                             )
                     simID.wait ()
-                    simLog.write ("\n\n")
+                    simLog.write ("\n-------- End Simulation %s on %s --------\n"
+                            %(test_elf_name, hw_dir_name))
 
-                    # Save the vcd dumps for further processing
-                    if data_type == 'FLOAT' : vcd_saved_dir = data_type+'.'+str(rep)+'.vcd'
-                    else                    : vcd_saved_dir = data_type+'-'+str(pw)+'.'+str(rep)+'.vcd'
+                    simLog.close ()
 
-                    shutil.copytree (os.path.join (hw_dir_path, 'vcd')
-                                   , os.path.join (CWD, vcd_saved_dir))
-                    shutil.rmtree (os.path.join (hw_dir_path, 'vcd'))
-                    logging.info ("Saving VCD files to %s"
-                            , os.path.join (CWD, vcd_saved_dir))
-
-        simLog.close ()
 
     if (not do_compile) and (not do_sim) :
         logging.error ("Specify atleast one activity: compile or sim")

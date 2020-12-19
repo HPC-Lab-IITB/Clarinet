@@ -1,8 +1,22 @@
 #include <stdio.h>
 #include "clarinet.h"
 
+// --------
+// FMA macros
 // the _p_ indicates that the input values are posit type
+#ifdef POSIT
+#ifdef PWIDTH_8
+void fn_posit_p_fma (unsigned char a, unsigned char b) {
+#endif
+#ifdef PWIDTH_16
+void fn_posit_p_fma (unsigned short a, unsigned short b) {
+#endif
+#ifdef PWIDTH_24
 void fn_posit_p_fma (unsigned int a, unsigned int b) {
+#endif
+#ifdef PWIDTH_32
+void fn_posit_p_fma (unsigned int a, unsigned int b) {
+#endif
    // input posit values in GPR
    register unsigned int gA asm ("a0") = a;
    register unsigned int gB asm ("a1") = b;
@@ -19,6 +33,7 @@ void fn_posit_p_fma (unsigned int a, unsigned int b) {
    asm ("fma.p    ft0, ft0, ft1" : "=f" (pA) : "f" (pA), "f" (pB));
    return;
 }
+#endif
 
 void fn_posit_fma (float a, float b) {
    // input float values
@@ -50,6 +65,8 @@ float fn_float_fma (float a, float b, float acc) {
    return (f_res);
 }
 
+// --------
+// Quire initialization macros
 // the _p_ indicates that the input values are posit type
 void fn_init_p_quire (unsigned int initVal) {
    register unsigned int gI asm ("a0") = initVal;
@@ -73,13 +90,28 @@ void fn_init_quire (float initVal) {
    return;
 }
 
+// --------
+// Quire read macros
+#ifdef POSIT
+#ifdef PWIDTH_8
+unsigned char fn_read_p_quire (void) {
+#endif
+#ifdef PWIDTH_16
+unsigned short fn_read_p_quire (void) {
+#endif
+#ifdef PWIDTH_24
 unsigned int fn_read_p_quire (void) {
+#endif
+#ifdef PWIDTH_32
+unsigned int fn_read_p_quire (void) {
+#endif
    register float pQ asm ("f0");
    register float gO asm ("a0");
    asm ("fcvt.p.r f0, f0" : "=f" (pQ) : "f" (pQ));
    asm ("pmv.x.w  a0, f0" : "=r" (gO) : "f" (pQ));
    return (gO);
 }
+#endif
 
 float fn_read_quire (void) {
    register float pQ asm ("f0");
@@ -89,3 +121,69 @@ float fn_read_quire (void) {
    return (fO);
 }
 
+// --------
+// VDP Routines
+// Posit input, posit compute, posit output
+#ifdef POSIT
+#ifdef PWIDTH_8
+unsigned char fn_posit_p_vdp (int r, unsigned char p_a[], unsigned char p_b[]) {
+#endif
+#ifdef PWIDTH_16
+unsigned short fn_posit_p_vdp (int r, unsigned short p_a[], unsigned short p_b[]) {
+#endif
+#ifdef PWIDTH_24
+unsigned int fn_posit_p_vdp (int r, unsigned int p_a[], unsigned int p_b[]) {
+#endif
+#ifdef PWIDTH_32
+unsigned int fn_posit_p_vdp (int r, unsigned int p_a[], unsigned int p_b[]) {
+#endif
+   unsigned int acc = 0;
+   int idx = 0;
+   int rep = 0;
+   fn_init_p_quire (acc);
+
+   for (rep=0; rep < r; rep ++)
+      for (idx=0; idx<24; idx++) fn_posit_p_fma (p_a[idx], p_b[idx]);
+
+   acc = fn_read_p_quire ();
+   return (acc);
+}
+#endif
+
+// Float input, posit compute, float output
+float fn_posit_vdp (int r, float v_a[], float v_b[]) {
+   float acc = 0.0;
+   int idx = 0;
+   int rep = 0;
+   fn_init_quire (acc);
+   for (rep=0; rep < r; rep ++)
+      for (idx=0; idx<VSZ; idx++) fn_posit_fma (v_a[idx], v_b[idx]);
+   acc = fn_read_quire ();
+   return (acc);
+}
+
+// Float input, float compute, float output
+float fn_float_vdp (int r, float v_a[], float v_b[]) {
+   float acc = 0.0;
+   int idx = 0;
+   int rep = 0;
+
+   for (rep=0; rep < r; rep ++)
+      for (idx=0; idx<VSZ; idx++) acc += fn_float_fma (v_a[idx], v_b[idx], acc);
+
+   return (acc);
+}
+
+// Float input, float compute, float output. Compiler optimization enabled.
+float fn_float_optimized_vdp (int r, float v_a[], float v_b[]) {
+   float acc = 0.0;
+   int idx = 0;
+   int rep = 0;
+
+   for (rep=0; rep < r; rep ++)
+      for (idx=0; idx<VSZ; idx++) acc += (v_a[idx] * v_b[idx]);
+
+   return (acc);
+}
+
+// --------
