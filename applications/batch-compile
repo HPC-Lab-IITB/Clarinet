@@ -17,12 +17,13 @@ HW_BDIR = os.path.join (CWD, '..', '..', 'builds')
 
 #------------------------
 """
-Create a logger
+Create a logger, and the report file name
 """
-def fn_createLogger (debug, thisScript):
+def fn_createLogger (debug, thisScript, main_prog):
     # Create a journal file to log all activity from this run
     now = datetime.datetime.now ()
     journalFName = thisScript + '-' + now.strftime("%Y%m%d_%H%M") + ".jou"
+    reportFName = main_prog + '-' + now.strftime("%Y%m%d_%H%M") + ".rpt"
     journalPath  = os.path.join (CWD, journalFName)
     if debug == True :
         logging.basicConfig (
@@ -51,20 +52,17 @@ def fn_createLogger (debug, thisScript):
 
     # Add the handler to the root logger
     logging.getLogger('').addHandler(console)
-    return
+    return reportFName
 
 
 """ Renames compile output depending on type, pw and rep """
 
-def fn_rename_files (f, main_prog, data_type, pw, rep) :
-    if data_type == 'FLOAT' : prefix = data_type + '.' + str(rep)
-    else                    : prefix = data_type + '-' + str(pw) + '.' + str(rep) 
+def fn_gen_cfg_name (data_type, operand_type, pw, vsz) :
+    if   data_type == 'FLOAT' : prefix = operand_type + '.' + str(vsz)
+    elif data_type == 'POSIT' : prefix = operand_type + '.' + str(vsz)
+    else                      : prefix = operand_type + '-' + 'p' + str(pw) + '.' + str(vsz) 
 
-    # rename the binary as a .elf file
-    if f == main_prog : new_file = prefix + '.' + main_prog + '.elf'
-    else              : new_file = prefix + '.' + f
-
-    return new_file
+    return prefix
     
 
 def main (argv) :
@@ -95,14 +93,37 @@ def main (argv) :
             , help="""The main program that we are compiling for\n"""
             )
 
+    parser.add_argument(
+              '--level'
+            , action="store"
+            , dest='blas_level'
+            , type=int
+            , default=1
+            , help="""The level (in BLAS terms) that the program we are compiling for belongs to.\n"""
+            )
+
     args = parser.parse_args()
     do_sim = args.sim
     do_compile = args.compile
     main_prog = args.main
+    blas_level = args.blas_level
 
-    fn_createLogger (True, 'batch-compile') 
+    reportFName = fn_createLogger (True, 'batch-compile', main_prog) 
     data_types = ['FLOAT', 'FLOAT_POSIT', 'POSIT']
-    reps  = [8, 16, 32, 64, 128, 256]
+    vszs  = [32, 64, 128, 256]
+
+    if blas_level == 1 :
+        vszs.append (512)
+        vszs.append (1024)
+        vszs.append (2048)
+        vszs.append (4096)
+    elif blas_level == 2 :
+        vszs.append (512)
+
+    # The summary dictionary captures information about each configuration being compiled and
+    # simulated. Some of the information is acquired statically, while others are from simulation
+    # Each entry is a list
+    summary = {}
 
     if do_compile : 
         compile_files_to_move = [main_prog, (main_prog+'.dump')]
@@ -113,24 +134,81 @@ def main (argv) :
             logging.error ("Unable to open '%s' for writing", makeLogFile)
             sys.exit (1)
 
-        main_val = 'MAIN=vdp'
+        main_val = 'MAIN='+main_prog
         for data_type in data_types :
             data_type_val = 'TYPE='+data_type
 
+            # set pwidth based on data type
             if data_type == 'FLOAT' : pwidths = [8]
-            else               : pwidths = [8, 16, 24, 32]
+            else : pwidths = [8, 16, 24, 32]
+
+            # for data-generator: set operarand data type (only for floats)
+            if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) :
+                operand_type = 'f32'
 
             for pw in pwidths :
                 pw_val = 'PWIDTH=PWIDTH_'+str(pw)
-                for rep in reps :
-                    rep_val = 'REP='+str(rep)
-                    logging.info ("make %s %s %s %s all", main_val, data_type_val, rep_val, pw_val)
+
+                # for data-generator: set operand data type (only for posits)
+                if (data_type == 'POSIT') : operand_type = 'p' + str(pw)
+
+                for vsz in vszs :
+                    cfg_name = fn_gen_cfg_name (data_type, operand_type, pw, vsz)
+                    vsz_val = 'VSZ='+str(vsz)
+
+                    # Generate the data depending on the vector size and the operand type and
+                    # the application. Some applications require one or more operands to be
+                    # matrices - this is dictated by blas_level
+
+                    # A dictionary to associate variables with their dimension (vector vs matrix)  
+                    # Right now this just decides if the variable is a matrix or not. But in
+                    # general this data-structure can extend to be a dictionary of dictionary
+                    # which captures more complex information about variables and their structures
+                    # 'matrix' could be generalised to 'dimension'
+                    variables = []
+                    if (blas_level == 1) :
+                        variables.append ({'name' : 'v_a', 'matrix' : False})
+                        variables.append ({'name' : 'v_b', 'matrix' : False})
+                    elif (blas_level == 2) :
+                        variables.append ({'name' : 'm_a', 'matrix' : True})
+                        variables.append ({'name' : 'v_b', 'matrix' : False})
+                    else :
+                        variables.append ({'name' : 'm_a', 'matrix' : True})
+                        variables.append ({'name' : 'm_b', 'matrix' : True})
+
+                    # Generate the data by repeatedly invoking the data generator
+                    for variable in variables :
+                        logging.info ("gen_data --vsz %d --type %s --out data.h --var %s --matrix %s"
+                                , vsz, operand_type, variable['name'], str(variable['matrix']))
+
+                        data_generator = os.path.join (CWD, '..', 'gen_data')
+
+                        if variable['matrix'] : is_matrix_string = '--matrix'
+                        else                  : is_matrix_string = '--vector'
+
+                        data_gen_id = subprocess.Popen (
+                                      [     data_generator
+                                          , '--vsz'
+                                          , str (vsz)
+                                          , '--type'
+                                          , operand_type
+                                          , '--var'
+                                          , variable['name']
+                                          , is_matrix_string
+                                          , '--out'
+                                          , 'data.h'
+                                      ]
+                                    , stderr=subprocess.STDOUT
+                                    , cwd=os.path.join (CWD, '..', 'lib'))
+                        data_gen_id.wait()
+
+                    logging.info ("make %s %s %s %s all", main_val, data_type_val, pw_val, vsz_val)
                     makeID = subprocess.Popen (
                                     [     "/usr/bin/make"
                                         , main_val
                                         , data_type_val
-                                        , rep_val
                                         , pw_val
+                                        , vsz_val
                                         , 'all'
                                     ]
                                 , stdout=makeLog
@@ -140,31 +218,78 @@ def main (argv) :
 
                     if makeID.returncode == 0 :
                         logging.info ("%s build: Success", main_prog)
+
+
                         # Name the executable and dump as per configuration
                         for f in compile_files_to_move :
-                            new_f = fn_rename_files (f, main_prog, data_type, pw, rep)
+                            # rename the binary as a .elf file
+                            if f == main_prog : new_file = cfg_name + '.' + main_prog + '.elf'
+                            else              : new_file = cfg_name + '.' + f
 
-                            shutil.move (os.path.join (CWD, f), os.path.join (CWD, new_f))
-                            logging.debug ("mv %s %s", os.path.join (CWD, f), os.path.join (CWD, new_f))
+                            shutil.move (os.path.join (CWD, f), os.path.join (CWD, new_file))
+                            logging.debug ("mv %s %s", os.path.join (CWD, f), os.path.join (CWD, new_file))
+
+                            # create an entry in the summary dictionary under this cfg_name
+                            # parse the objdump to extract the size of the data segment
+                            if 'dump' in new_file :
+                                dumpF = open (os.path.join (CWD, new_file), 'r') 
+                                for line in dumpF :
+                                    if '.data' in line :
+                                        data_seg_size = int (line.split()[2], 16)
+                                        break
+                                dumpF.close ()
+                                summary[cfg_name] = []
+                                summary[cfg_name].append (vsz)
+                                summary[cfg_name].append (data_seg_size)
 
                         # Clean up
                         makeID = subprocess.Popen (
                                         [     "/usr/bin/make"
                                             , main_val
                                             , data_type_val
-                                            , rep_val
+                                            , pw_val
                                             , 'clean'
                                         ]
                                     , stdout=makeLog
                                     , stderr=subprocess.STDOUT
                                     , cwd=CWD)
                         makeID.wait()
-                    else : logging.error ("%s build: Failure", main_prog)
+                        os.remove (os.path.join (CWD, '..', 'lib', 'data.h'))
+
+                    else :
+                        logging.error ("%s build: Failure", main_prog)
+
+                        # Clean up
+                        makeID = subprocess.Popen (
+                                        [     "/usr/bin/make"
+                                            , main_val
+                                            , data_type_val
+                                            , pw_val
+                                            , 'clean'
+                                        ]
+                                    , stdout=makeLog
+                                    , stderr=subprocess.STDOUT
+                                    , cwd=CWD)
+                        makeID.wait()
+                        os.remove (os.path.join (CWD, '..', 'lib', 'data.h'))
+
         makeLog.close ()
 
     if do_sim :
         log_dir = os.path.join (CWD, 'logs')
         os.mkdir (log_dir)
+
+        # Create simulation summary report file
+        try : rptf = open (reportFName, 'w')
+        except : 
+            logging.error ("Unable to open '%s' for writing", reportFName)
+            sys.exit (1)
+
+        # Create simulation summary report file
+        try : rpt_csv = open ((reportFName+'.csv'), 'w')
+        except : 
+            logging.error ("Unable to open '%s' for writing", (reportFName+'.csv'))
+            sys.exit (1)
 
         for data_type in data_types :
             data_type_val = 'TYPE='+data_type
@@ -172,40 +297,45 @@ def main (argv) :
             if data_type == 'FLOAT' : pwidths = [8]
             else                    : pwidths = [8, 16, 24, 32]
 
+            # for data-generator: set operarand data type (only for floats)
+            if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) :
+                operand_type = 'f32'
+
             for pw in pwidths :
                 pw_val = 'PWIDTH=PWIDTH_'+str(pw)
-                for rep in reps :
-                    rep_val = 'REP='+str(rep)
 
+                # for data-generator: set operand data type (only for posits)
+                if (data_type == 'POSIT') : operand_type = 'p' + str(pw)
+
+                for vsz in vszs :
+                    # ------
                     # Run the simulation
+                    cfg_name = fn_gen_cfg_name (data_type, operand_type, pw, vsz)
+                    simLogFile = os.path.join (log_dir, (cfg_name+'.log'))
+                    try : simLog = open (simLogFile, 'w')
+                    except :
+                        logging.error ("Could not open '%s' for writing", simLogFile)
+                        sys.exit (1)
 
                     # ------
                     # do not include Posit HW for a pure FP run. Sort out the hw directory and
                     # the simulation log file name
                     if data_type == 'FLOAT' :
                         hw_dir_name = 'RV32ACFIMSU_verilator'
-                        simLogFile = os.path.join (log_dir, (data_type+'.'+str(rep)+'.log'))
 
                     else :
                         hw_dir_name = 'RV32ACFIMSU_P'+str(pw)+'_verilator'
-                        simLogFile = os.path.join (log_dir, (data_type+'-'+str(pw)+'.'+str(rep)+'.log'))
 
                     hw_dir_path = os.path.join (HW_BDIR, hw_dir_name)
 
-                    try :
-                        simLog = open (simLogFile, 'w')
-                    except :
-                        logging.error ("Could not open '%s' for writing", simLogFile)
-                        sys.exit (1)
-
                     # ------
                     # get the name of the .elf file by applying the renaming recipe
-                    test_elf_name = fn_rename_files (main_prog, main_prog, data_type, pw, rep)
-                    test_path = os.path.join (CWD, test_elf_name)
+                    test_path = os.path.join (CWD, (cfg_name + '.' + main_prog + '.elf'))
                     example_val = 'EXAMPLE='+test_path
+                    verbosity_val = 'VERBOSITY=+v0'
 
                     # ------
-                    logging.info ("Simulating %s on %s", test_elf_name, hw_dir_name)
+                    logging.info ("Simulating %s on %s", test_path, hw_dir_name)
 
                     simID = subprocess.Popen (
                               [     '/usr/bin/make'
@@ -213,6 +343,7 @@ def main (argv) :
                                   , os.path.join (hw_dir_path, 'Makefile')
                                   , 'run_example'
                                   , example_val
+                                  , verbosity_val
                                   ]
                             , stdout=simLog
                             , stderr=subprocess.STDOUT
@@ -220,9 +351,57 @@ def main (argv) :
                             )
                     simID.wait ()
                     simLog.write ("\n-------- End Simulation %s on %s --------\n"
-                            %(test_elf_name, hw_dir_name))
+                            %(test_path, hw_dir_name))
 
                     simLog.close ()
+
+                    # Parse simulation logs to extract cycle count for the run
+                    simLog = open (simLogFile, 'r')
+                    for line in simLog :
+                        if 'Cycle Report' in line :
+                            line = line.strip()
+                            summary[cfg_name].append (line.split(':')[-1])
+                            break
+                    simLog.close ()
+
+        # Print summary to a report file and a CSV file
+        logging.info ("Simulation complete. Generating report.")
+        titles = ['Config', 'Dimension', 'Data-Size', 'Cycle-Count']
+        line = '|'
+        csv_line = ''
+        first_elem_in_csv_line = True
+
+        for title in titles :
+            line = line + title.ljust(15) + '|'
+            if first_elem_in_csv_line :
+                csv_line = csv_line + title
+                first_elem_in_csv_line = False
+            else : csv_line = csv_line + ',' + title
+
+        line = line + '\n'
+        rptf.write (line)
+        rptf.write ('-' * len(line))
+        rptf.write ('\n')
+        rpt_csv.write (csv_line)
+        rpt_csv.write ('\n')
+
+        for key, value in summary.items() : 
+            line = '|'
+            line = line + key.ljust(15) + '|'
+            csv_line = key
+
+            for v in value :
+                line = line + str(v).ljust(15) + '|'
+                csv_line = csv_line + ',' + str(v)
+
+            rptf.write (line)
+            rptf.write ('\n')
+
+            rpt_csv.write (csv_line)
+            rpt_csv.write ('\n')
+
+        rptf.close ()
+        rpt_csv.close ()
 
 
     if (not do_compile) and (not do_sim) :
