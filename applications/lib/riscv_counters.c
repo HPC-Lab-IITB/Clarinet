@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 // ----------------------------------------------------------------
 // For 64-bit:
@@ -18,7 +19,7 @@
 
 // We use mcycle / mcycleh instead of rdcycle / rdcycleh on 32-bit
 // because Rocket32 (P1) seems not to have rdcycleh
-uint64_t  read_cycle (void)
+uint32_t  read_cycle (void)
 {
      uint32_t hi, lo, tmp;
 
@@ -30,7 +31,8 @@ uint64_t  read_cycle (void)
         "bne %0, %2, 1b"
         : "=&r" (hi), "=&r" (lo), "=&r" (tmp));
 
-     return ((uint64_t)hi << 32) | lo;
+     // return ((uint64_t)hi << 32) | lo;
+     return (lo);
 }
 
 #endif

@@ -12,4 +12,9 @@
 // because some processors, e.g., Rocket32p, do not implement
 // RDCYCLEH.
 
+#ifdef RV32
+extern uint32_t  read_cycle    (void);    // RDCYCLE
+#endif
+#ifdef RV64
 extern uint64_t  read_cycle    (void);    // RDCYCLE
+#endif

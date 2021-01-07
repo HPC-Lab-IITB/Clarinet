@@ -142,11 +142,31 @@ unsigned int fn_posit_p_vdp (int r, unsigned int p_a[], unsigned int p_b[]) {
    int rep = 0;
    fn_init_p_quire (acc);
 
-   for (rep=0; rep < r; rep ++)
-      for (idx=0; idx<24; idx++) fn_posit_p_fma (p_a[idx], p_b[idx]);
+   for (idx=0; idx < r; idx ++) fn_posit_p_fma (p_a[idx], p_b[idx]);
 
    acc = fn_read_p_quire ();
    return (acc);
+}
+#endif
+
+#ifdef POSIT
+#ifdef PWIDTH_8
+void fn_posit_p_gemv (unsigned char  v_acc[], int r, unsigned char  m_a[][VSZ], unsigned char  p_b[]) {
+#endif
+#ifdef PWIDTH_16
+void fn_posit_p_gemv (unsigned short v_acc[], int r, unsigned short m_a[][VSZ], unsigned short p_b[]) {
+#endif
+#ifdef PWIDTH_24
+void fn_posit_p_gemv (unsigned int   v_acc[], int r, unsigned int   m_a[][VSZ], unsigned int   p_b[]) {
+#endif
+#ifdef PWIDTH_32
+void fn_posit_p_gemv (unsigned int   v_acc[], int r, unsigned int   m_a[][VSZ], unsigned int   p_b[]) {
+#endif
+   int idx = 0;
+   for (idx=0; idx < r; idx ++)
+      v_acc[idx] = fn_posit_p_vdp (r, m_a[idx], p_b);
+
+   return;
 }
 #endif
 
@@ -154,36 +174,58 @@ unsigned int fn_posit_p_vdp (int r, unsigned int p_a[], unsigned int p_b[]) {
 float fn_posit_vdp (int r, float v_a[], float v_b[]) {
    float acc = 0.0;
    int idx = 0;
-   int rep = 0;
    fn_init_quire (acc);
-   for (rep=0; rep < r; rep ++)
-      for (idx=0; idx<VSZ; idx++) fn_posit_fma (v_a[idx], v_b[idx]);
+   for (idx=0; idx < r; idx ++) fn_posit_fma (v_a[idx], v_b[idx]);
    acc = fn_read_quire ();
    return (acc);
+}
+
+// Float input, posit compute, float output
+void fn_posit_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
+   int idx = 0;
+   for (idx=0; idx < r; idx ++)
+      v_acc[idx] = fn_posit_vdp (r, m_a[idx], v_b);
+   return;
 }
 
 // Float input, float compute, float output
 float fn_float_vdp (int r, float v_a[], float v_b[]) {
    float acc = 0.0;
    int idx = 0;
-   int rep = 0;
 
-   for (rep=0; rep < r; rep ++)
-      for (idx=0; idx<VSZ; idx++) acc += fn_float_fma (v_a[idx], v_b[idx], acc);
+   for (idx=0; idx < r; idx ++) acc += fn_float_fma (v_a[idx], v_b[idx], acc);
 
    return (acc);
 }
 
-// Float input, float compute, float output. Compiler optimization enabled.
+// Float input, float compute, float output
+void fn_float_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
+   int idx = 0;
+   for (idx=0; idx < r; idx ++)
+      v_acc[idx] = fn_float_vdp (r, m_a[idx], v_b);
+
+   return;
+}
+
+// Float input, float compute, float output. Code written to allow compiler optimization wrt
+// function calls.
 float fn_float_optimized_vdp (int r, float v_a[], float v_b[]) {
    float acc = 0.0;
    int idx = 0;
-   int rep = 0;
 
-   for (rep=0; rep < r; rep ++)
-      for (idx=0; idx<VSZ; idx++) acc += (v_a[idx] * v_b[idx]);
+   for (idx=0; idx < r; idx ++) acc += (v_a[idx] * v_b[idx]);
 
    return (acc);
+}
+
+// Float input, float compute, float output. Code written to allow compiler optimization wrt
+// function calls.
+void fn_float_optimized_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
+   int idx = 0;
+   for (idx=0; idx < r; idx ++)
+      v_acc[idx] = fn_float_optimized_vdp (r, m_a[idx], v_b);
+
+   return;
 }
 
 // --------

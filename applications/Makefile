@@ -2,30 +2,11 @@
 
 
 ARCH ?= rv32imafc
-ifeq ($(ARCH),)
-$(error ERROR: need to specify ARCH.  Consider using riscvexplorer-findcore)
-endif
-
 ABI ?= ilp32f
-ifeq ($(ABI),)
-$(error ERROR: need to specify ABI.  Consider using riscvexplorer-findcore)
-endif
-
 # needed for uart.c
 CLOCK_MHZ ?= 71
-ifeq ($(CLOCK_MHZ),)
-$(error ERROR: need to specify CLOCK_MHZ.  Consider using riscvexplorer-findcore)
-endif
-
-XLEN?=32
-ifeq ($(XLEN),)
-$(error ERROR: need to specify XLEN.  Consider using riscvexplorer-findcore)
-endif
-
+XLEN ?= 32
 CMODEL?=medlow
-ifeq ($(CMODEL),)
-$(error ERROR: need to specify CMODEL.  Consider using riscvexplorer-findcore)
-endif
 
 # Must have a / at the end
 # Can be blank if you just want to use PATH
@@ -101,5 +82,5 @@ $(MAIN).o: uart.o startup.o syscalls.o riscv_counters.o clarinet.o
 $(MAIN): $(MAIN).o clarinet.o riscv_counters.o
 
 objdump: $(MAIN)
-	$(OBJDUMP) -D $(MAIN) > $(MAIN).dump
+	$(OBJDUMP) -xd $(MAIN) > $(MAIN).dump
 
