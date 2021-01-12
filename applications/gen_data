@@ -30,6 +30,18 @@ def main (argv) :
             , help="""Variable is a matrix of size (vec_size, vec_size). Do NOT use with --vector\n"""
             )
     parser.add_argument (
+              '--transpose'
+            , action="store_true"
+            , dest='is_transpose'
+            , help="""Generate transposed matrix. Only valid with --matrix.\n"""
+            )
+    parser.add_argument (
+              '--no-transpose'
+            , action="store_false"
+            , dest='is_transpose'
+            , help="""Generate non-transposed matrix. Only valid with --matrix.\n"""
+            )
+    parser.add_argument (
               '--var'
             , action="store"
             , dest='var_name'
@@ -130,10 +142,12 @@ def main (argv) :
     operand_array = fn_compose_operand_array (repetition, seed_vals, args.data_type)
 
     # for a matrix, compose operand_arrays into operand_val
-    if args.is_matrix : operand_val = fn_compose_operand_matrix (args.vec_size, operand_array)
+    if args.is_matrix :
+        if args.is_transpose : operand_val = fn_compose_operand_matrix (args.vec_size, operand_array)
+        else : operand_val = fn_compose_transposed_matrix (args.vec_size, operand_array)
 
     # for a vector use the operand_array as operand_val
-    else           : operand_val = operand_array
+    else : operand_val = operand_array
 
     # write out the declaration into the header file
     outf.write ("%s = %s;\n\n" % (operand_decl, operand_val))
@@ -144,15 +158,46 @@ def main (argv) :
 
 # Compose seed arrays into an operand array
 def fn_compose_operand_matrix (repetition, operand_array) :
-    operand_val = "{" + "\n"
+    # split array into constituent elements
+    seed_array    = operand_array.strip ('{')
+    seed_array    = seed_array.strip ('}')
+    seed_array    = seed_array.strip ()
+    seed_values   = seed_array.split (',')
+
+    operand_val = "{ "
+    first_array = True
+    for val in seed_values :
+        first_val = True
+        # array delimiters
+        if first_array :
+            operand_val = operand_val + "{" 
+            first_array = False
+        else :
+            operand_val = operand_val + ",{" 
+
+        # value delimiters
+        for rep in range (repetition) :
+            if first_val :
+                operand_val = operand_val + val
+                first_val = False
+            else :
+                operand_val = operand_val + "," + val
+        operand_val = operand_val + "}" 
+
+    operand_val = operand_val + " }"
+    return operand_val
+
+# Compose seed arrays into an operand array
+def fn_compose_transposed_matrix (repetition, operand_array) :
+    operand_val = "{ "
     first_array = True
     for rep in range (repetition) :
         if first_array :
-            operand_val = operand_val + "     " + operand_array
+            operand_val = operand_val + operand_array
             first_array = False
         else :
-            operand_val = operand_val + "   , " + operand_array
-    operand_val = operand_val + "\n" + "}"
+            operand_val = operand_val + "," + operand_array
+    operand_val = operand_val + " }"
     return operand_val
 
 # Compose seed values into an operand array
@@ -164,7 +209,7 @@ def fn_compose_operand_array (repetition, seed_vals, data_type) :
             if first_val :
                 operand_val = operand_val + val 
                 first_val = False
-            else : operand_val = operand_val + ', ' + val
+            else : operand_val = operand_val + ',' + val
     operand_val = operand_val + ' }'
     return operand_val
 

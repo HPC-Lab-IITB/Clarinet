@@ -167,24 +167,28 @@ def main (argv) :
                     # 'matrix' could be generalised to 'dimension'
                     variables = []
                     if (blas_level == 1) :
-                        variables.append ({'name' : 'v_a', 'matrix' : False})
-                        variables.append ({'name' : 'v_b', 'matrix' : False})
+                        variables.append ({'name' : 'v_a', 'matrix' : False, 'transpose': False})
+                        variables.append ({'name' : 'v_b', 'matrix' : False, 'transpose': False})
                     elif (blas_level == 2) :
-                        variables.append ({'name' : 'm_a', 'matrix' : True})
-                        variables.append ({'name' : 'v_b', 'matrix' : False})
+                        variables.append ({'name' : 'm_a', 'matrix' : True, 'transpose': False})
+                        variables.append ({'name' : 'v_b', 'matrix' : False, 'transpose': False})
                     else :
-                        variables.append ({'name' : 'm_a', 'matrix' : True})
-                        variables.append ({'name' : 'm_b', 'matrix' : True})
+                        variables.append ({'name' : 'm_a', 'matrix' : True, 'transpose': False})
+                        variables.append ({'name' : 'm_b', 'matrix' : True, 'transpose': True})
 
                     # Generate the data by repeatedly invoking the data generator
                     for variable in variables :
-                        logging.info ("gen_data --vsz %d --type %s --out data.h --var %s --matrix %s"
-                                , vsz, operand_type, variable['name'], str(variable['matrix']))
+                        if variable['matrix'] : is_matrix_string = '--matrix'
+                        else                  : is_matrix_string = '--vector'
+
+                        if variable['transpose'] : is_transpose_string = '--transpose'
+                        else                     : is_transpose_string = '--no-transpose'
 
                         data_generator = os.path.join (CWD, '..', 'gen_data')
 
-                        if variable['matrix'] : is_matrix_string = '--matrix'
-                        else                  : is_matrix_string = '--vector'
+                        logging.debug ("%s --vsz %d --type %s --var %s %s %s --out data.h"
+                                , data_generator, vsz, operand_type, variable['name']
+                                , is_matrix_string, is_transpose_string)
 
                         data_gen_id = subprocess.Popen (
                                       [     data_generator
@@ -195,6 +199,7 @@ def main (argv) :
                                           , '--var'
                                           , variable['name']
                                           , is_matrix_string
+                                          , is_transpose_string
                                           , '--out'
                                           , 'data.h'
                                       ]

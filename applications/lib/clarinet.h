@@ -79,3 +79,22 @@ void n_posit_p_gemv           (unsigned int   v_acc[], int r, unsigned int   a[]
 void fn_posit_gemv            (float v_acc[], int r, float a[][VSZ], float b[]);
 void fn_float_gemv            (float v_acc[], int r, float a[][VSZ], float b[]);
 void fn_float_optimized_gemv  (float v_acc[], int r, float a[][VSZ], float b[]);
+
+// --------
+#ifdef POSIT
+#ifdef PWIDTH_8
+void fn_posit_p_gemm          (unsigned char  m_acc[][VSZ], int r, unsigned char  a[][VSZ], unsigned char  b[][VSZ]);
+#endif
+#ifdef PWIDTH_16
+void  fn_posit_p_gemm         (unsigned short m_acc[][VSZ], int r, unsigned short a[][VSZ], unsigned short b[][VSZ]);
+#endif
+#ifdef PWIDTH_24
+void n_posit_p_gemm           (unsigned int   m_acc[][VSZ], int r, unsigned int   a[][VSZ], unsigned int   b[][VSZ]);
+#endif
+#ifdef PWIDTH_32
+void n_posit_p_gemm           (unsigned int   m_acc[][VSZ], int r, unsigned int   a[][VSZ], unsigned int   b[][VSZ]);
+#endif
+#endif
+void fn_posit_gemm            (float m_acc[][VSZ], int r, float a[][VSZ], float b[][VSZ]);
+void fn_float_gemm            (float m_acc[][VSZ], int r, float a[][VSZ], float b[][VSZ]);
+void fn_float_optimized_gemm  (float m_acc[][VSZ], int r, float a[][VSZ], float b[][VSZ]);

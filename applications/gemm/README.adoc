@@ -1,0 +1,17 @@
+# GEMM - Matrix-Matrix Product
+Uses GEMV under the hood.
+
+The following variations are supported:
+
+. Float-GEMV
+. Posit-GEMV using float input data
+. Posit-GEMV using posit input data
+
+In the case of posit input data 8, 16, 24 and 32 bit posits are supported
+
+`VSZ` varies the dimension of the matrix and vector. The matrix is a square matrix of size
+`VSZ`x`VSZ`, the vector is 1x`VSZ`
+
+To generate the data, compile and simulate all variants on Clarinet run the python script:
+
+`../batch-compile --compile --sim --main gemm --level 3`

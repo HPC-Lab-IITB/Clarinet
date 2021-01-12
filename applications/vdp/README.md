@@ -12,4 +12,4 @@ In order to vary the length of the VDP computation, the REP macro is used.
 
 To compile and simulate all variants on Clarinet run the python script:
 
-`./batch-compile`
+`../batch-compile --help`

@@ -170,6 +170,37 @@ void fn_posit_p_gemv (unsigned int   v_acc[], int r, unsigned int   m_a[][VSZ], 
 }
 #endif
 
+#ifdef POSIT
+#ifdef PWIDTH_8
+void fn_posit_p_gemm (unsigned char  m_acc[][VSZ], int dimension, unsigned char  m_a[][VSZ], unsigned char  m_b[][VSZ]) {
+   unsigned char v_acc[VSZ];
+#endif
+#ifdef PWIDTH_16
+void fn_posit_p_gemm (unsigned short m_acc[][VSZ], int dimension, unsigned short m_a[][VSZ], unsigned short m_b[][VSZ]) {
+   unsigned short v_acc[VSZ];
+#endif
+#ifdef PWIDTH_24
+void fn_posit_p_gemm (unsigned int   m_acc[][VSZ], int dimension, unsigned int   m_a[][VSZ], unsigned int   m_b[][VSZ]) {
+   unsigned int v_acc[VSZ];
+#endif
+#ifdef PWIDTH_32
+void fn_posit_p_gemm (unsigned int   m_acc[][VSZ], int dimension, unsigned int   m_a[][VSZ], unsigned int   m_b[][VSZ]) {
+   unsigned int v_acc[VSZ];
+#endif
+   int ridx = 0; int cidx = 0;
+
+   for (ridx=0; ridx < dimension; ridx++) {
+      fn_posit_p_gemv (v_acc, dimension, m_a, m_b[ridx]);
+      // implement a transpose to get the result matrix
+      for (cidx=0; cidx < dimension; cidx++) {
+         m_acc[cidx][ridx] = v_acc[cidx];
+      }
+   }
+
+   return;
+}
+#endif
+
 // Float input, posit compute, float output
 float fn_posit_vdp (int r, float v_a[], float v_b[]) {
    float acc = 0.0;
@@ -185,6 +216,23 @@ void fn_posit_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
    int idx = 0;
    for (idx=0; idx < r; idx ++)
       v_acc[idx] = fn_posit_vdp (r, m_a[idx], v_b);
+   return;
+}
+
+// Float input, float compute, float output. Code written to allow compiler optimization wrt
+// function calls.
+void fn_posit_gemm (float m_acc[][VSZ], int dimension, float m_a[][VSZ], float m_b[][VSZ]) {
+   int ridx = 0; int cidx = 0;
+   float v_acc[VSZ];
+
+   for (ridx=0; ridx < dimension; ridx++) {
+      fn_posit_gemv (v_acc, dimension, m_a, m_b[ridx]);
+      // implement a transpose to get the result matrix
+      for (cidx=0; cidx < dimension; cidx++) {
+         m_acc[cidx][ridx] = v_acc[cidx];
+      }
+   }
+
    return;
 }
 
@@ -207,6 +255,21 @@ void fn_float_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
    return;
 }
 
+// Float input, float compute, float output. The second matrix is the transposed version
+void fn_float_gemm (float m_acc[][VSZ], int dimension, float m_a[][VSZ], float m_b[][VSZ]) {
+   int ridx = 0; int cidx = 0;
+   float v_acc[VSZ];
+   for (ridx=0; ridx < dimension; ridx++) {
+      fn_float_gemv (v_acc, dimension, m_a, m_b[ridx]);
+      // implement a transpose to get the result matrix
+      for (cidx=0; cidx < dimension; cidx++) {
+         m_acc[cidx][ridx] = v_acc[cidx];
+      }
+   }
+
+   return;
+}
+
 // Float input, float compute, float output. Code written to allow compiler optimization wrt
 // function calls.
 float fn_float_optimized_vdp (int r, float v_a[], float v_b[]) {
@@ -224,6 +287,23 @@ void fn_float_optimized_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[
    int idx = 0;
    for (idx=0; idx < r; idx ++)
       v_acc[idx] = fn_float_optimized_vdp (r, m_a[idx], v_b);
+
+   return;
+}
+
+// Float input, float compute, float output. Code written to allow compiler optimization wrt
+// function calls.
+void fn_float_optimized_gemm (float m_acc[][VSZ], int dimension, float m_a[][VSZ], float m_b[][VSZ]) {
+   int ridx = 0; int cidx = 0;
+   float v_acc[VSZ];
+
+   for (ridx=0; ridx < dimension; ridx++) {
+      fn_float_optimized_gemv (v_acc, dimension, m_a, m_b[ridx]);
+      // implement a transpose to get the result matrix
+      for (cidx=0; cidx < dimension; cidx++) {
+         m_acc[cidx][ridx] = v_acc[cidx];
+      }
+   }
 
    return;
 }
