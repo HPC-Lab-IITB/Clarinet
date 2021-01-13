@@ -102,6 +102,15 @@ def main (argv) :
             , help="""The level (in BLAS terms) that the program we are compiling for belongs to.\n"""
             )
 
+    parser.add_argument(
+              '--data-types'
+            , action="append"
+            , dest='data_types'
+            , default=None
+            , help="""The data types that we are building and simulating (FLOAT, FLOAT_POSIT, POSIT)\n"""
+            )
+
+
     args = parser.parse_args()
     do_sim = args.sim
     do_compile = args.compile
@@ -109,7 +118,11 @@ def main (argv) :
     blas_level = args.blas_level
 
     reportFName = fn_createLogger (True, 'batch-compile', main_prog) 
-    data_types = ['FLOAT', 'FLOAT_POSIT', 'POSIT']
+
+    # What data types do we work with?
+    if args.data_types == None : data_types = ['FLOAT', 'FLOAT_POSIT', 'POSIT']
+    else : data_types = args.data_types
+
     vszs  = [32, 64, 128, 256]
 
     if blas_level == 1 :
@@ -282,7 +295,11 @@ def main (argv) :
 
     if do_sim :
         log_dir = os.path.join (CWD, 'logs')
-        os.mkdir (log_dir)
+        if os.path.isdir (log_dir) :
+            logging.debug ("Simulation logs directory, '%s' exists - not creating a new one.", log_dir)
+        else :
+            logging.debug ("Creating simulation logs directory, '%s'", log_dir)
+            os.mkdir (log_dir)
 
         # Create simulation summary report file
         try : rptf = open (reportFName, 'w')

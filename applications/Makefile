@@ -8,8 +8,9 @@ CLOCK_MHZ ?= 71
 XLEN ?= 32
 CMODEL?=medlow
 
-# Must have a / at the end
-# Can be blank if you just want to use PATH
+# Must have a / at the end. Can be blank if you just want to use PATH
+# Should point to your installation of the RISC-V tools which support the new
+# instructions in Clarinet
 TOOLCHAIN?=/home/nsharma/x-tools/riscv32-unknown-elf/bin/
 
 CROSS_COMPILE?=riscv$(XLEN)-unknown-elf-

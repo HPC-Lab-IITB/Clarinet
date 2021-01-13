@@ -29,7 +29,7 @@ int main (void) {
    uint32_t end = 0;
    uint32_t elapsed = 0;
 
-   printf ("Starting GEMV benchmarks...\n");
+   printf ("Starting GEMM benchmarks...\n");
 
    // Now lets do some cycle analysis
 #ifdef OPT_FLOAT
