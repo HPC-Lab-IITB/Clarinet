@@ -114,7 +114,7 @@ test:
 .PHONY: isa_tests
 isa_tests:
 	@echo "Running regressions on ISA tests; saving logs in Logs/"
-	$(REPO)/Tests/Run_regression.py  ./exe_HW_sim  $(REPO)  ./Logs  $(ARCH)
+	$(REPO)/Tests/Run_regression.py  ./exe_HW_sim  $(REPO)  ./Logs  $(ARCH) 2
 	@echo "Finished running regressions; saved logs in Logs/"
 
 # ================================================================

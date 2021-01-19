@@ -133,7 +133,9 @@ module mkCPU (CPU_IFC);
    // General purpose registers and CSRs
    GPR_RegFile_IFC  gpr_regfile  <- mkGPR_RegFile;
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    FPR_RegFile_IFC  fpr_regfile  <- mkFPR_RegFile;
+`endif
 `endif
 `ifdef POSIT
    PPR_RegFile_IFC  ppr_regfile  <- mkPPR_RegFile;
@@ -212,7 +214,9 @@ module mkCPU (CPU_IFC);
    CPU_Stage3_IFC stage3 <- mkCPU_Stage3 (cur_verbosity,
 					  gpr_regfile,
 `ifdef ISA_F
+`ifndef ONLY_POSITS
 					  fpr_regfile,
+`endif
 `endif
 `ifdef POSIT
 					  ppr_regfile,
@@ -226,9 +230,11 @@ module mkCPU (CPU_IFC);
 					   stage2.out.bypass,
 					   stage3.out.bypass,
 `ifdef ISA_F
+`ifndef ONLY_POSITS
 					   fpr_regfile,
 					   stage2.out.fbypass,
 					   stage3.out.fbypass,
+`endif
 `endif
 `ifdef POSIT
 					   ppr_regfile,
@@ -275,9 +281,11 @@ module mkCPU (CPU_IFC);
    FIFOF #(DM_CPU_Rsp #(XLEN))     f_gpr_rsps <- mkFIFOF;
 
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    // Debugger FPR read/write request/response
    FIFOF #(DM_CPU_Req #(5,  FLEN)) f_fpr_reqs <- mkFIFOF;
    FIFOF #(DM_CPU_Rsp #(FLEN))     f_fpr_rsps <- mkFIFOF;
+`endif
 `endif
 
    // Debugger CSR read/write request/response
@@ -396,7 +404,9 @@ module mkCPU (CPU_IFC);
       $display ("    Stage3: ", fshow (stage3.out));
       $display ("        Bypass  to Stage1: ", fshow (stage3.out.bypass));
 `ifdef ISA_F
+`ifndef ONLY_POSITS
       $display ("        FBypass to Stage1: ", fshow (stage3.out.fbypass));
+`endif
 `endif
 `ifdef POSIT
       $display ("        PBypass to Stage1: ", fshow (stage3.out.pbypass));
@@ -408,7 +418,9 @@ module mkCPU (CPU_IFC);
       $display ("        ", fshow (stage2.out));
       $display ("        Bypass  to Stage1: ", fshow (stage2.out.bypass));
 `ifdef ISA_F
+`ifndef ONLY_POSITS
       $display ("        FBypass to Stage1: ", fshow (stage2.out.fbypass));
+`endif
 `endif
 `ifdef POSIT
       $display ("        PBypass to Stage1: ", fshow (stage2.out.pbypass));
@@ -456,7 +468,9 @@ module mkCPU (CPU_IFC);
 
       gpr_regfile.server_reset.request.put (?);
 `ifdef ISA_F
+`ifndef ONLY_POSITS
       fpr_regfile.server_reset.request.put (?);
+`endif
 `endif
 `ifdef POSIT
       ppr_regfile.server_reset.request.put (?);
@@ -500,7 +514,9 @@ module mkCPU (CPU_IFC);
    rule rl_reset_complete (rg_state == CPU_RESET2);
       let ack_gpr <- gpr_regfile.server_reset.response.get;
 `ifdef ISA_F
+`ifndef ONLY_POSITS
       let ack_fpr <- fpr_regfile.server_reset.response.get;
+`endif
 `endif
 `ifdef POSIT
       let ack_ppr <- ppr_regfile.server_reset.response.get;
@@ -1623,6 +1639,7 @@ module mkCPU (CPU_IFC);
    // Debug Module FPR read/write
 
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    rule rl_debug_read_fpr ((rg_state == CPU_DEBUG_MODE) && (! f_fpr_reqs.first.write));
       let req <- pop (f_fpr_reqs);
       Bit #(5) regname = req.address;
@@ -1656,6 +1673,7 @@ module mkCPU (CPU_IFC);
       if (cur_verbosity > 1)
 	 $display ("%0d: %m.rl_debug_fpr_access_busy", mcycle);
    endrule
+`endif
 `endif
 
    // ----------------
@@ -1769,8 +1787,10 @@ module mkCPU (CPU_IFC);
    interface Server  hart0_gpr_mem_server = toGPServer (f_gpr_reqs, f_gpr_rsps);
 
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    // FPR access
    interface Server  hart0_fpr_mem_server = toGPServer (f_fpr_reqs, f_fpr_rsps);
+`endif
 `endif
 
    // CSR access

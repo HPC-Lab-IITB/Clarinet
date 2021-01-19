@@ -218,6 +218,7 @@ endfunction
 // Returns '(busy, val)'
 // 'busy' means that the RegName is valid and matches, but the value is not available yet
 
+`ifndef ONLY_POSITS
 function Tuple2 #(Bool, WordFL) fn_fpr_bypass (FBypass bypass, RegName rd, WordFL rd_val);
    Bool busy = ((bypass.bypass_state == BYPASS_RD) && (bypass.rd == rd));
    WordFL val= (  ((bypass.bypass_state == BYPASS_RD_RDVAL) && (bypass.rd == rd))
@@ -225,6 +226,7 @@ function Tuple2 #(Bool, WordFL) fn_fpr_bypass (FBypass bypass, RegName rd, WordF
 		: rd_val);
    return tuple2 (busy, val);
 endfunction
+`endif
 
 `ifdef POSIT
 // PBypass functions for Posits
@@ -536,7 +538,9 @@ typedef struct {
    Bypass                 bypass;
 
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    FBypass                fbypass;
+`endif
 
 `ifdef POSIT
    PBypass                pbypass;
@@ -629,7 +633,9 @@ typedef struct {
    Stage_OStatus  ostatus;
    Bypass         bypass;
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    FBypass        fbypass;
+`endif
 `ifdef POSIT
    PBypass        pbypass;
 `endif

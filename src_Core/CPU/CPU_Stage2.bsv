@@ -131,10 +131,12 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 			     };
 
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    let fbypass_base = FBypass {bypass_state: BYPASS_RD_NONE,
 			       rd:           rg_stage2.rd,
 			       rd_val:       rg_stage2.fval1
 			       };
+`endif
 
 // Bypass logic for the posit RF
 `ifdef POSIT
@@ -216,7 +218,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : ?,
 					bypass          : no_bypass
 `ifdef ISA_F
+`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
+`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
@@ -240,7 +244,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
+`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
+`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
@@ -302,7 +308,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             // Update the bypass channel, if not trapping (NONPIPE)
 	    let bypass = bypass_base;
 `ifdef ISA_F
+`ifndef ONLY_POSITS
 	    let fbypass = fbypass_base;
+`endif
 `ifdef POSIT
 	    let pbypass = pbypass_base;
 `endif
@@ -319,9 +327,11 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 		  // fbypass.bypass_state = ((ostatus == OSTATUS_PIPE) ? BYPASS_RD_RDVAL : BYPASS_RD);
 		  // fbypass.rd_val       = data_to_stage3.frd_val;
 
+`ifndef ONLY_POSITS
 		  // Option 2: shorter critical path, since the data is not bypassed into previous stage,
 		  // (the bypassing is effectively delayed until the next stage).
 		  fbypass.bypass_state = BYPASS_RD;
+`endif
                end
 `ifdef POSIT
                // Bypassing PPR value.
@@ -376,7 +386,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					   data_to_stage3  : data_to_stage3,
 					   bypass          : bypass
 `ifdef ISA_F
+`ifndef ONLY_POSITS
                                          , fbypass         : fbypass
+`endif
 `ifdef POSIT
                                          , pbypass         : no_pbypass
 `endif
@@ -404,7 +416,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : no_bypass
 `ifdef ISA_F
+`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
+`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
@@ -441,7 +455,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
+`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
+`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
@@ -479,7 +495,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
+`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
+`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
@@ -521,18 +539,22 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `endif
 
 	 let bypass              = bypass_base;
+`ifndef ONLY_POSITS
          let fbypass             = fbypass_base;
+`endif
 `ifdef POSIT
          let pbypass             = pbypass_base;
 `endif
          // result is meant for a FPR
          if (rg_stage2.rd_in_fpr) begin
+`ifndef ONLY_POSITS
             fbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
                                                                : BYPASS_RD);
 `ifdef ISA_D
             fbypass.rd_val          = value;
 `else
             fbypass.rd_val          = truncate (value);
+`endif
 `endif
          end
 
@@ -575,7 +597,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
+`ifndef ONLY_POSITS
                                       , fbypass         : fbypass
+`endif
 `ifdef POSIT
                                       , pbypass         : pbypass
 `endif

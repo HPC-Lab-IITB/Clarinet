@@ -78,9 +78,11 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 		      Bypass           bypass_from_stage2,
 		      Bypass           bypass_from_stage3,
 `ifdef ISA_F
+`ifndef ONLY_POSITS
 		      FPR_RegFile_IFC  fpr_regfile,
 		      FBypass          fbypass_from_stage2,
 		      FBypass          fbypass_from_stage3,
+`endif
 `endif
 `ifdef POSIT
                       PPR_RegFile_IFC  ppr_regfile,
@@ -133,6 +135,7 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
    Word rs2_val_bypassed = ((rs2 == 0) ? 0 : rs2b);
 
 `ifdef ISA_F
+`ifndef ONLY_POSITS
    // FP Register rs1 read and bypass
    let frs1_val = fpr_regfile.read_rs1 (rs1);
    match { .fbusy1a, .frs1a } = fn_fpr_bypass (fbypass_from_stage3, rs1, frs1_val);
@@ -154,8 +157,9 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
    match { .fbusy3b, .frs3b } = fn_fpr_bypass (fbypass_from_stage2, rs3, frs3a);
    Bool frs3_busy = (fbusy3a || fbusy3b);
    WordFL frs3_val_bypassed = frs3b;
-
 `endif
+`endif
+
 `ifdef POSIT
    // Posit Register rs1 read and bypass
    let prs1_val = ppr_regfile.read_rs1 (rs1);
@@ -184,10 +188,12 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 				rs1_val        : rs1_val_bypassed,
 				rs2_val        : rs2_val_bypassed,
 `ifdef ISA_F
+`ifndef ONLY_POSITS
 				frs1_val       : frs1_val_bypassed,
 				frs2_val       : frs2_val_bypassed,
 				frs3_val       : frs3_val_bypassed,
 				frm            : csr_regfile.read_frm,
+`endif
 `ifdef INCLUDE_TANDEM_VERIF
                                 fflags         : csr_regfile.read_fflags,
 `endif
@@ -285,10 +291,12 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
       end
 
 `ifdef ISA_F
+`ifndef ONLY_POSITS
       // Stall if bypass pending for FPR rs1, rs2 or rs3
       else if (frs1_busy || frs2_busy || frs3_busy) begin
 	 output_stage1.ostatus = OSTATUS_BUSY;
       end
+`endif
 `endif
 `ifdef POSIT
       // Stall if bypass pending for PPR rs1, rs2 or rs3
