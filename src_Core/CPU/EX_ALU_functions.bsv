@@ -106,6 +106,9 @@ typedef struct {
    Bool       rd_in_fpr;      // result to be written to fpr
    Bool       rs_frm_fpr;     // src register is in fpr (for FP stores)
    Bool       val1_frm_gpr;   // first operand is in gpr (for some FP instrns)
+   Bit #(3)   rm;             // rounding mode
+`endif
+
 `ifdef POSIT
    Bool       rd_in_ppr;      // For instructions where the destn
                               // is in the Posit RF
@@ -115,8 +118,6 @@ typedef struct {
                               // of architectural state
    WordPL     pval1;          // OP_Stage2_P: arg1
    WordPL     pval2;          // OP_Stage2_P: arg2
-`endif
-   Bit #(3)   rm;             // rounding mode
 `endif
 
    CF_Info    cf_info;        // For redirection and branch predictor
@@ -148,14 +149,14 @@ ALU_Outputs alu_outputs_base
 	       rd_in_fpr   : False,
 	       rs_frm_fpr  : False,
 	       val1_frm_gpr: False,
+	       rm          : ?,
+`endif
 `ifdef POSIT
                no_rd_upd   : False,
 	       rs_frm_ppr  : False,
 	       rd_in_ppr   : False,
 	       pval1       : ?,
 	       pval2       : ?,
-`endif
-	       rm          : ?,
 `endif
 	       cf_info     : cf_info_base
 
@@ -702,12 +703,12 @@ function ALU_Outputs fv_LD (ALU_Inputs inputs);
 `endif
 `ifdef ISA_F
 		    || (funct3 == f3_FLW)
-`ifdef POSIT
-		    || (funct3 == f3_PLW)
-`endif
 `endif
 `ifdef ISA_D
 		    || (funct3 == f3_FLD)
+`endif
+`ifdef POSIT
+		    || (funct3 == f3_PLW)
 `endif
 		    );
 
@@ -724,7 +725,7 @@ function ALU_Outputs fv_LD (ALU_Inputs inputs);
       // for loads to PPR. All other loads are to FPR
       alu_outputs.rd_in_fpr = (funct3 != f3_PLW);
       alu_outputs.rd_in_ppr = (funct3 == f3_PLW);
-   `else
+`else
       // note that the destination register for this load is in the FPR
       alu_outputs.rd_in_fpr = True;
 `endif
@@ -780,12 +781,12 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
 `endif
 `ifdef ISA_F
 		    || (funct3 == f3_FSW)
-`ifdef POSIT
-		    || (funct3 == f3_PSW)
-`endif
 `endif
 `ifdef ISA_D
 		    || (funct3 == f3_FSD)
+`endif
+`ifdef POSIT
+		    || (funct3 == f3_PSW)
 `endif
 		    );
 
@@ -818,9 +819,10 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
 
 `ifdef ISA_F
    alu_outputs.fval2     = inputs.frs2_val;
+`endif
+
 `ifdef POSIT
    alu_outputs.pval2     = inputs.prs2_val;
-`endif
 `endif
 
 `ifdef INCLUDE_TANDEM_VERIF
@@ -1008,10 +1010,13 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
    // are always illegal
    let inst_is_legal = (  (fv_mstatus_fs (inputs.mstatus) == fs_xs_off)
 			? False
-			: fv_is_fp_instr_legal (funct7,
-						rm,
-						rs2,
-						opcode));
+			: (
+                              fv_is_fp_instr_legal (funct7, rm, rs2, opcode)
+`ifdef POSIT
+                           || fv_is_posit_instr_legal (funct7, rm, rs2, opcode)
+`endif
+                          )
+                       );
 
    let alu_outputs         = alu_outputs_base;
    alu_outputs.control     = ((inst_is_legal && rm_is_legal) ? CONTROL_STRAIGHT
@@ -1022,7 +1027,12 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
 
    // Operand values
    // The first operand may be from the FPR or GPR
-   alu_outputs.val1_frm_gpr= fv_fp_val1_from_gpr (opcode, funct7, rs2);
+   alu_outputs.val1_frm_gpr= (
+         fv_fp_val1_from_gpr (opcode, funct7, rs2)
+`ifdef POSIT
+      || fv_posit_val1_from_gpr (opcode, funct7, rs2)
+`endif
+   );
 
 
    // Just copy the rs1_val values from inputs to outputs this covers cases
@@ -1038,8 +1048,10 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
    alu_outputs.no_rd_upd = fv_is_destn_in_quire (opcode, funct7, rs2);
    alu_outputs.rd_in_ppr = (  fv_is_rd_in_PPR (opcode, funct7, rs2)
                            || fv_is_destn_in_quire (opcode, funct7, rs2));
-   alu_outputs.rd_in_fpr = !fv_is_rd_in_GPR (funct7, rs2) && 
-                           !alu_outputs.rd_in_ppr;
+   alu_outputs.rd_in_fpr = (
+         !fv_is_rd_in_GPR (funct7, rs2)
+      && !alu_outputs.rd_in_ppr
+      && !fv_is_posit_rd_in_GPR (funct7, rs2));
 
    // Just copy the prs*_val values from inputs to outputs
    alu_outputs.pval1     = inputs.prs1_val;

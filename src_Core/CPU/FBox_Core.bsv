@@ -185,7 +185,9 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
         Bit #(64)
       , Bit #(5))))        resultR        <- mkRegU;
    
+`ifndef ONLY_POSITS
    FPU_IFC                 fpu            <- mkFPU;
+`endif
 
 `ifdef POSIT
    PositCore_IFC           positCore      <- mkPositCore (verbosity);
@@ -215,6 +217,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
 `endif
 
    Bit #(2) f2 = f7[1:0];
+
+`ifndef ONLY_POSITS
 `ifdef ISA_D
    let isFMADD_D     = (opc == op_FMADD)  && (f2 == 1);
    let isFMSUB_D     = (opc == op_FMSUB)  && (f2 == 1);
@@ -289,9 +293,10 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    let isFLE_S       = (opc == op_FP) && (f7 == f7_FCMP_S) && (rm == 0);
    let isFLT_S       = (opc == op_FP) && (f7 == f7_FCMP_S) && (rm == 1);
    let isFEQ_S       = (opc == op_FP) && (f7 == f7_FCMP_S) && (rm == 2);
-   let isFMV_X_W     = (opc == op_FP) && (f7 == f7_FMV_X_W) && (rm == 0);
-   let isFMV_W_X     = (opc == op_FP) && (f7 == f7_FMV_W_X) && (rm == 0);
+   let isFMV_X_W     = (opc == op_FP) && (f7 == f7_FMV_X_W) && (rm == 0) && (rs2 == 0);
+   let isFMV_W_X     = (opc == op_FP) && (f7 == f7_FMV_W_X) && (rm == 0) && (rs2 == 0);
    let isFCLASS_S    = (opc == op_FP) && (f7 == f7_FCLASS_S) && (rm == 1);
+`endif
 
 `ifdef POSIT
    // New opcodes for posit computation
@@ -313,6 +318,8 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    // to be done. If we are executing in a DP capable environment, all SP 64-bit
    // rs values should be properly nanboxed. Otherwise, they will be treated as
    // as canonicalNaN32
+
+`ifndef ONLY_POSITS
    FSingle sV1, sV2, sV3;
    FDouble dV1, dV2, dV3;
 
@@ -323,6 +330,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    dV1 = unpack (v1);
    dV2 = unpack (v2);
    dV3 = unpack (v3);
+`endif
 
 `ifdef POSIT
    // Posits represented as raw 32-bits. There is not type
@@ -348,13 +356,17 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       resultR  <= tagged Invalid;
       stateR   <= FBOX_RST;
 
+`ifndef ONLY_POSITS
       fpu.server_reset.request.put (?);
+`endif
    endrule
    
    // Complete the reset when response from the FPU is received
    rule rl_reset_end (stateR == FBOX_RST);
       stateR   <= FBOX_REQ;
+`ifndef ONLY_POSITS
       let res  <- fpu.server_reset.response.get;
+`endif
       resetRspsF.enq (?);
    endrule
 
@@ -362,6 +374,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    // locally here in the F-Box
    Bool validReq = isValid (requestR) && (stateR == FBOX_REQ) ;
 
+`ifndef ONLY_POSITS
    // Single precision operations
    let cmpres_s = compareFP ( sV1, sV2 );
    rule doFADD_S ( validReq && isFADD_S );
@@ -430,106 +443,6 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
          $display ("%0d: %m.doFSQRT_S ", cur_cycle);
       fpu.server_core.request.put( tuple5( tagged S sV1, ?, ?, rmd, FPSqrt ));
       stateR <= FBOX_BUSY;
-   endrule
-`endif
-
-`ifdef POSIT
-   // Execute a floating point to posit conversion instruction
-   rule doFCVT_P_S ( validReq && isFCVT_P_S );
-      positCore.server_core.request.put (
-         tuple4 (tagged S sV1, ?, ?, FCVT_P_S));
-      stateR <= FBOX_PBUSY;
-      if (verbosity > 1)
-         $display ("%0d: %m.doFCVT_P_S (0x%08x)", cur_cycle, sV1);
-   endrule
-
-   // Execute a posit to floating point conversion instruction
-   rule doFCVT_S_P ( validReq && isFCVT_S_P );
-      positCore.server_core.request.put (
-         tuple4 (tagged P pV1, ?, rmd, FCVT_S_P));
-      stateR <= FBOX_PBUSY;
-      if (verbosity > 1)
-         $display ("%0d: %m.doFCVT_S_P (0x%08x)", cur_cycle, pV1);
-   endrule
-
-   // Execute a posit to quire conversion instruction
-   rule doFCVT_R_P ( validReq && isFCVT_R_P );
-      if (verbosity > 1)
-         $display ("%0d: %m.doFCVT_R_P ", cur_cycle);
-      positCore.server_core.request.put (
-         tuple4 (tagged P pV1, ?, ?, FCVT_R_P));
-      stateR <= FBOX_PBUSY;
-   endrule
-
-   // Execute a quire to posit conversion instruction
-   rule doFCVT_P_R ( validReq && isFCVT_P_R );
-      if (verbosity > 1)
-         $display ("%0d: %m.doFCVT_P_R ", cur_cycle);
-      positCore.server_core.request.put (
-         tuple4 (tagged P pV1, ?, ?, FCVT_P_R));
-      stateR <= FBOX_PBUSY;
-   endrule
-
-   // Execute a posit fused multiply add instruction into quire
-   rule doFMA_P ( validReq && isFMA_P );
-      positCore.server_core.request.put (
-         tuple4 (tagged P pV1, tagged P pV2, ?, FMA_P));
-      stateR <= FBOX_PBUSY;
-      if (verbosity > 1)
-         $display ("%0d: %m.doFMA_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
-   endrule
-
-   // Execute a posit fused multiply add instruction into quire
-   rule doFMS_P ( validReq && isFMS_P );
-      positCore.server_core.request.put (
-         tuple4 (tagged P pV1, tagged P pV2, ?, FMS_P));
-      stateR <= FBOX_PBUSY;
-      if (verbosity > 1)
-         $display ("%0d: %m.doFMS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
-   endrule
-
-   // Execute a posit fused multiply add instruction into quire
-   rule doFDA_P ( validReq && isFDA_P );
-      positCore.server_core.request.put (
-         tuple4 (tagged P pV1, tagged P pV2, ?, FDA_P));
-      stateR <= FBOX_PBUSY;
-      if (verbosity > 1)
-         $display ("%0d: %m.doFDA_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
-   endrule
-
-   // Execute a posit fused multiply add instruction into quire
-   rule doFDS_P ( validReq && isFDS_P );
-      positCore.server_core.request.put (
-         tuple4 (tagged P pV1, tagged P pV2, ?, FDS_P));
-      stateR <= FBOX_PBUSY;
-      if (verbosity > 1)
-         $display ("%0d: %m.doFDS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
-   endrule
-
-   // Move a posit value from GPR to PPR
-   // v1 holds the GPR value
-   rule doPMV_W_X ( validReq && isPMV_W_X );
-      Bit #(64) res = fv_nanbox (pack ( v1 ));
-      resultR     <= tagged Valid (tuple2 (res, 0));
-      stateR      <= FBOX_RSP;
-
-      if (verbosity > 1)
-         $display ("%0d: %m.doPMV_W_X (0x%016x)", cur_cycle, v1);
-   endrule
-
-   // Move a posit value from PPR to GPR
-   // pV1 holds the PPR value
-   rule doPMV_X_W ( validReq && isPMV_X_W );
-      // The PMV treats the data in the PPR and GPR as raw data and does not
-      // interpret it. So for this instruction we use the raw bits coming from
-      // the PPR
-      Bit #(64) res = signExtend ( pV1 );
-
-      resultR     <= tagged Valid (tuple2 (res, 0));
-      stateR      <= FBOX_RSP;
-
-      if (verbosity > 1)
-         $display ("%0d: %m.doPMV_X_W (0x%08x) ", cur_cycle, pV1);
    endrule
 `endif
 
@@ -1383,9 +1296,113 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       stateR      <= FBOX_RSP;
    endrule
 `endif
+`endif
+
+`ifdef POSIT
+`ifndef ONLY_POSITS
+   // Execute a floating point to posit conversion instruction
+   rule doFCVT_P_S ( validReq && isFCVT_P_S );
+      positCore.server_core.request.put (
+         tuple4 (tagged S sV1, ?, ?, FCVT_P_S));
+      stateR <= FBOX_PBUSY;
+      if (verbosity > 1)
+         $display ("%0d: %m.doFCVT_P_S (0x%08x)", cur_cycle, sV1);
+   endrule
+
+   // Execute a posit to floating point conversion instruction
+   rule doFCVT_S_P ( validReq && isFCVT_S_P );
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, ?, rmd, FCVT_S_P));
+      stateR <= FBOX_PBUSY;
+      if (verbosity > 1)
+         $display ("%0d: %m.doFCVT_S_P (0x%08x)", cur_cycle, pV1);
+   endrule
+`endif
+
+   // Execute a posit to quire conversion instruction
+   rule doFCVT_R_P ( validReq && isFCVT_R_P );
+      if (verbosity > 1)
+         $display ("%0d: %m.doFCVT_R_P ", cur_cycle);
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, ?, ?, FCVT_R_P));
+      stateR <= FBOX_PBUSY;
+   endrule
+
+   // Execute a quire to posit conversion instruction
+   rule doFCVT_P_R ( validReq && isFCVT_P_R );
+      if (verbosity > 1)
+         $display ("%0d: %m.doFCVT_P_R ", cur_cycle);
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, ?, ?, FCVT_P_R));
+      stateR <= FBOX_PBUSY;
+   endrule
+
+   // Execute a posit fused multiply add instruction into quire
+   rule doFMA_P ( validReq && isFMA_P );
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, FMA_P));
+      stateR <= FBOX_PBUSY;
+      if (verbosity > 1)
+         $display ("%0d: %m.doFMA_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
+   endrule
+
+   // Execute a posit fused multiply add instruction into quire
+   rule doFMS_P ( validReq && isFMS_P );
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, FMS_P));
+      stateR <= FBOX_PBUSY;
+      if (verbosity > 1)
+         $display ("%0d: %m.doFMS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
+   endrule
+
+   // Execute a posit fused multiply add instruction into quire
+   rule doFDA_P ( validReq && isFDA_P );
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, FDA_P));
+      stateR <= FBOX_PBUSY;
+      if (verbosity > 1)
+         $display ("%0d: %m.doFDA_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
+   endrule
+
+   // Execute a posit fused multiply add instruction into quire
+   rule doFDS_P ( validReq && isFDS_P );
+      positCore.server_core.request.put (
+         tuple4 (tagged P pV1, tagged P pV2, ?, FDS_P));
+      stateR <= FBOX_PBUSY;
+      if (verbosity > 1)
+         $display ("%0d: %m.doFDS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
+   endrule
+
+   // Move a posit value from GPR to PPR
+   // v1 holds the GPR value
+   rule doPMV_W_X ( validReq && isPMV_W_X );
+      Bit #(64) res = fv_nanbox (pack ( v1 ));
+      resultR     <= tagged Valid (tuple2 (res, 0));
+      stateR      <= FBOX_RSP;
+
+      if (verbosity > 1)
+         $display ("%0d: %m.doPMV_W_X (0x%016x)", cur_cycle, v1);
+   endrule
+
+   // Move a posit value from PPR to GPR
+   // pV1 holds the PPR value
+   rule doPMV_X_W ( validReq && isPMV_X_W );
+      // The PMV treats the data in the PPR and GPR as raw data and does not
+      // interpret it. So for this instruction we use the raw bits coming from
+      // the PPR
+      Bit #(64) res = signExtend ( pV1 );
+
+      resultR     <= tagged Valid (tuple2 (res, 0));
+      stateR      <= FBOX_RSP;
+
+      if (verbosity > 1)
+         $display ("%0d: %m.doPMV_X_W (0x%08x) ", cur_cycle, pV1);
+   endrule
+`endif
 
    // =============================================================
 
+`ifndef ONLY_POSITS
    // This rule collects the response from FPU for compute opcodes
    rule rl_get_fpu_result ((stateR == FBOX_BUSY));
       Fpu_Rsp r      <- fpu.server_core.response.get();
@@ -1413,6 +1430,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       if (verbosity > 1)
          $display (  "%0d: %m.rl_get_fpu_result: ", cur_cycle, fshow (r));
    endrule
+`endif
 
 `ifdef POSIT
    // When the result is from the posit core

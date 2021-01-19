@@ -137,10 +137,10 @@ typedef  TLog #(Bytes_per_WordFL)              Bits_per_Byte_in_WordFL;
 typedef  Bit #(Bits_per_Byte_in_WordFL)        Byte_in_WordFL;
 typedef  Vector #(Bytes_per_WordFL, Byte)      WordFL_B;
 
-`ifdef POSIT
-typedef  Bit #(PositWidth) WordPL;
 `endif
 
+`ifdef POSIT
+typedef  Bit #(PositWidth) WordPL;
 `endif
 
 // ================================================================
@@ -691,19 +691,12 @@ typedef enum {
 // Funct2 encoding
 Bit #(2) f2_S           = 2'b00;
 Bit #(2) f2_D           = 2'b01;
-`ifdef POSIT
-Bit #(2) f2_P           = 2'b10;          // Clarinet: f2 for Posits
-`endif
 Bit #(2) f2_Q           = 2'b11;
 
 
 // RS2 encoding
 Bit #(5) rs2_S          = 5'h00;
 Bit #(5) rs2_D          = 5'h01;
-`ifdef POSIT
-Bit #(5) rs2_P          = 5'h10;          // Clarinet: rs2 for Posits
-Bit #(5) rs2_R          = 5'h11;          // Clarinet: rs2 for Quire
-`endif
 
 // Floating point Load-Store
 Opcode   op_LOAD_FP     = 7'b00_001_11;
@@ -712,16 +705,6 @@ Bit #(3) f3_FSW         = 3'b010;
 Bit #(3) f3_FSD         = 3'b011;
 Bit #(3) f3_FLW         = 3'b010;
 Bit #(3) f3_FLD         = 3'b011;
-
-`ifdef POSIT
-// Posit point Load-Store
-// Posit load-store uses the same opcode as FP load-store for now.
-// The f3 field is chosen as f3[2] is used to select between
-// signed and unsigned loads. In the case of FP loads (IEEE or
-// Posit) the concept of unsigened loads 
-Bit #(3) f3_PSW         = 3'b110;
-Bit #(3) f3_PLW         = 3'b110;
-`endif
 
 // Fused FP Multiply Add/Sub instructions
 Opcode   op_FMADD       = 7'b10_00_011;
@@ -732,12 +715,6 @@ Opcode   op_FNMADD      = 7'b10_01_111;
 // All other FP intructions
 Opcode   op_FP          = 7'b10_10_011;
 
-`ifdef POSIT
-Bit #(7) f7_FMA_P       = 7'h32; // Clarinet: Fused-Multiply-Accumulate
-Bit #(7) f7_FMS_P       = 7'h36; // Clarinet: Fused-Multiply-Subtract
-Bit #(7) f7_FDA_P       = 7'h3A; // Clarinet: Fused-Divide-Accumulate
-Bit #(7) f7_FDS_P       = 7'h3E; // Clarinet: Fused-Divide-Subtract
-`endif
 Bit #(7) f7_FADD_D      = 7'h1 ;
 Bit #(7) f7_FSUB_D      = 7'h5 ;
 Bit #(7) f7_FMUL_D      = 7'h9 ;
@@ -770,14 +747,6 @@ Bit #(7) f7_FCVT_S_LU   = 7'h68;
 
 Bit #(7) f7_FCVT_S_D    = 7'h20;
 Bit #(7) f7_FCVT_D_S    = 7'h21;
-`ifdef POSIT
-Bit #(7) f7_FCVT_P_S    = 7'h26;       // Clarinet: Float to Posit
-Bit #(7) f7_FCVT_S_P    = 7'h24;       // Clarinet: Posit to Float
-Bit #(7) f7_FCVT_P_R    = 7'h2A;       // Clarinet: Quire to Posit
-Bit #(7) f7_FCVT_R_P    = 7'h2A;       // Clarinet: Posit to Quire
-Bit #(7) f7_PMV_X_W     = 7'h70;       // Clarinet: Move PPR to GPR
-Bit #(7) f7_PMV_W_X     = 7'h7A;       // Clarinet: Move GPR to PPR
-`endif
 Bit #(7) f7_FCVT_W_D    = 7'h61;
 Bit #(7) f7_FCVT_WU_D   = 7'h61;
 Bit #(7) f7_FCVT_D_W    = 7'h69;
@@ -825,9 +794,6 @@ function Bool fv_is_rd_in_GPR (Bit #(7) funct7, RegName rs2);
 
    // FEQ.S, FLE.S, FLT.S map to this
    let is_FCMP_S     = (funct7 == f7_FCMP_S);
-`ifdef POSIT
-   let is_PMV_X_W    = (funct7 == f7_PMV_X_W);
-`endif
 
     return (
           False
@@ -849,9 +815,6 @@ function Bool fv_is_rd_in_GPR (Bit #(7) funct7, RegName rs2);
        || is_FCVT_WU_S
        || is_FMV_X_W
        || is_FCMP_S
-`ifdef POSIT
-       || is_PMV_X_W
-`endif
     );
 endfunction
 
@@ -926,8 +889,8 @@ function Bool fv_is_fp_instr_legal (
           || ((f7 == f7_FCMP_S)   && ( rm == 0))
           || ((f7 == f7_FCMP_S)   && ( rm == 1))
           || ((f7 == f7_FCMP_S)   && ( rm == 2))
-          || ((f7 == f7_FMV_X_W)  && ( rm == 0))
-          || ((f7 == f7_FMV_W_X)  && ( rm == 0))
+          || ((f7 == f7_FMV_X_W)  && ( rm == 0) && (rs2 == 0))
+          || ((f7 == f7_FMV_W_X)  && ( rm == 0) && (rs2 == 0))
           || ((f7 == f7_FCLASS_S) && ( rm == 1))
 `ifdef ISA_D
           ||  (f7 == f7_FADD_D)  
@@ -965,18 +928,6 @@ function Bool fv_is_fp_instr_legal (
           || ((f7 == f7_FMV_D_X)  && ( rm == 0))
           || ((f7 == f7_FCLASS_D) && ( rm == 1))
 `endif
-`ifdef POSIT
-          || (f7 == f7_FMA_P)
-          || (f7 == f7_FMS_P)
-          || (f7 == f7_FDA_P)
-          || (f7 == f7_FDS_P)
-          || ((f7 == f7_FCVT_P_S) && (rs2 == rs2_S))
-          || ((f7 == f7_FCVT_S_P) && (rs2 == rs2_P))
-          || ((f7 == f7_FCVT_P_R) && (rs2 == rs2_R))
-          || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_P))
-          || ((f7 == f7_PMV_X_W) && (rs2 == rs2_P))
-          || (f7 == f7_PMV_W_X)
-`endif
          ) return True;
       else return False;
 endfunction
@@ -1003,14 +954,70 @@ function Bool fv_fp_val1_from_gpr (Opcode opcode, Bit#(7) f7, RegName rs2);
           || ((f7 == f7_FCVT_S_LU) && (rs2 == 3))
 `endif
           || ((f7 == f7_FMV_W_X))
-`ifdef POSIT
-          || ((f7 == f7_PMV_W_X))
-`endif
           )
    );
 endfunction
 
+`endif
+
+// Posit point definitions for Clarinet
 `ifdef POSIT
+Bit #(2) f2_P           = 2'b10;          // Clarinet: f2 for Posits
+
+Bit #(5) rs2_P          = 5'h10;          // Clarinet: rs2 for Posits
+Bit #(5) rs2_R          = 5'h11;          // Clarinet: rs2 for Quire
+
+// Posit point Load-Store
+// Posit load-store uses the same opcode as FP load-store for now.
+// The f3 field is chosen as f3[2] is used to select between
+// signed and unsigned loads. In the case of FP loads (IEEE or
+// Posit) the concept of unsigened loads 
+Bit #(3) f3_PSW         = 3'b110;
+Bit #(3) f3_PLW         = 3'b110;
+Bit #(7) f7_FMA_P       = 7'h32; // Clarinet: Fused-Multiply-Accumulate
+Bit #(7) f7_FMS_P       = 7'h36; // Clarinet: Fused-Multiply-Subtract
+Bit #(7) f7_FDA_P       = 7'h3A; // Clarinet: Fused-Divide-Accumulate
+Bit #(7) f7_FDS_P       = 7'h3E; // Clarinet: Fused-Divide-Subtract
+Bit #(7) f7_FCVT_P_S    = 7'h26;       // Clarinet: Float to Posit
+Bit #(7) f7_FCVT_S_P    = 7'h24;       // Clarinet: Posit to Float
+Bit #(7) f7_FCVT_P_R    = 7'h2A;       // Clarinet: Quire to Posit
+Bit #(7) f7_FCVT_R_P    = 7'h2A;       // Clarinet: Posit to Quire
+Bit #(7) f7_PMV_X_W     = 7'h70;       // Clarinet: Move PPR to GPR
+Bit #(7) f7_PMV_W_X     = 7'h7A;       // Clarinet: Move GPR to PPR
+
+function Bool fv_is_posit_rd_in_GPR (Bit #(7) funct7, RegName rs2);
+   let is_PMV_X_W    = (funct7 == f7_PMV_X_W);
+   return (is_PMV_X_W);
+endfunction
+
+function Bool fv_is_posit_instr_legal (
+   Bit #(7) f7, Bit #(3) rm, RegName rs2, Opcode fopc);
+   Bit #(2) f2 = f7[1:0];
+   Bool is_legal = True;
+   if (    (f7 == f7_FMA_P)
+        || (f7 == f7_FMS_P)
+        || (f7 == f7_FDA_P)
+        || (f7 == f7_FDS_P)
+        || ((f7 == f7_FCVT_P_S) && (rs2 == rs2_S))
+        || ((f7 == f7_FCVT_S_P) && (rs2 == rs2_P))
+        || ((f7 == f7_FCVT_P_R) && (rs2 == rs2_R))
+        || ((f7 == f7_FCVT_R_P) && (rs2 == rs2_P))
+        || ((f7 == f7_PMV_X_W)  && (rs2 == rs2_P))
+        || (f7 == f7_PMV_W_X)) return True;
+   else return False;
+endfunction
+
+// Returns True if the first operand (val1) should be taken from the GPR
+// instead of the PPR for a posit opcode
+function Bool fv_posit_val1_from_gpr (Opcode opcode, Bit#(7) f7, RegName rs2);
+   return (
+         (opcode == op_FP)
+      && (   False
+          || ((f7 == f7_PMV_W_X))
+          )
+   );
+endfunction
+
 // Posit instructions which update the quire does not update 
 // FPR or PPR state.
 function Bool fv_is_destn_in_quire (Opcode opc, Bit #(7) f7, RegName rs2);
@@ -1028,7 +1035,7 @@ function Bool fv_is_source_in_quire (Opcode opc, Bit #(7) f7, RegName rs2);
    return ((opc == op_FP) && (f7 == f7_FCVT_P_R) && (rs2 == rs2_R));
 endfunction 
 
-// Posit instructions whose rd is in the posit register file
+// Posit instructions whose rd is in the PPR
 function Bool fv_is_rd_in_PPR (Opcode opc, Bit #(7) f7, RegName rs2);
    return (   (opc == op_FP)
            && (   (f7 == f7_FCVT_P_S)
@@ -1037,7 +1044,6 @@ function Bool fv_is_rd_in_PPR (Opcode opc, Bit #(7) f7, RegName rs2);
               )
           );
 endfunction
-`endif
 `endif
 
 // ================================================================

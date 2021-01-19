@@ -134,9 +134,9 @@ module mkCPU (CPU_IFC);
    GPR_RegFile_IFC  gpr_regfile  <- mkGPR_RegFile;
 `ifdef ISA_F
    FPR_RegFile_IFC  fpr_regfile  <- mkFPR_RegFile;
+`endif
 `ifdef POSIT
    PPR_RegFile_IFC  ppr_regfile  <- mkPPR_RegFile;
-`endif
 `endif
 
    CSR_RegFile_IFC  csr_regfile  <- mkCSR_RegFile;
@@ -213,9 +213,9 @@ module mkCPU (CPU_IFC);
 					  gpr_regfile,
 `ifdef ISA_F
 					  fpr_regfile,
+`endif
 `ifdef POSIT
 					  ppr_regfile,
-`endif
 `endif
 					  csr_regfile);
 
@@ -229,11 +229,11 @@ module mkCPU (CPU_IFC);
 					   fpr_regfile,
 					   stage2.out.fbypass,
 					   stage3.out.fbypass,
+`endif
 `ifdef POSIT
 					   ppr_regfile,
 					   stage2.out.pbypass,
 					   stage3.out.pbypass,
-`endif
 `endif
 					   csr_regfile,
 					   rg_epoch,
@@ -397,9 +397,9 @@ module mkCPU (CPU_IFC);
       $display ("        Bypass  to Stage1: ", fshow (stage3.out.bypass));
 `ifdef ISA_F
       $display ("        FBypass to Stage1: ", fshow (stage3.out.fbypass));
+`endif
 `ifdef POSIT
       $display ("        PBypass to Stage1: ", fshow (stage3.out.pbypass));
-`endif
 `endif
       $display ("    Stage2: pc 0x%08h instr 0x%08h priv %0d",
 		stage2.out.data_to_stage3.pc,
@@ -409,9 +409,9 @@ module mkCPU (CPU_IFC);
       $display ("        Bypass  to Stage1: ", fshow (stage2.out.bypass));
 `ifdef ISA_F
       $display ("        FBypass to Stage1: ", fshow (stage2.out.fbypass));
+`endif
 `ifdef POSIT
       $display ("        PBypass to Stage1: ", fshow (stage2.out.pbypass));
-`endif
 `endif
 
       $display ("    Stage1: pc 0x%08h instr 0x%08h priv %0d",
@@ -457,9 +457,9 @@ module mkCPU (CPU_IFC);
       gpr_regfile.server_reset.request.put (?);
 `ifdef ISA_F
       fpr_regfile.server_reset.request.put (?);
+`endif
 `ifdef POSIT
       ppr_regfile.server_reset.request.put (?);
-`endif
 `endif
       csr_regfile.server_reset.request.put (?);
       near_mem.server_reset.request.put (?);
@@ -501,9 +501,9 @@ module mkCPU (CPU_IFC);
       let ack_gpr <- gpr_regfile.server_reset.response.get;
 `ifdef ISA_F
       let ack_fpr <- fpr_regfile.server_reset.response.get;
+`endif
 `ifdef POSIT
       let ack_ppr <- ppr_regfile.server_reset.response.get;
-`endif
 `endif
       let ack_csr <- csr_regfile.server_reset.response.get;
       let ack_nm  <- near_mem.server_reset.response.get;
