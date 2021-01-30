@@ -1739,10 +1739,12 @@ module mkCPU (CPU_IFC);
    interface  dmem_slave = near_mem.dmem_slave;
 `endif
 
+`ifdef COHERENT_DMA
    // ----------------
    // Interface to 'coherent DMA' port of optional L2 cache
 
-   interface AXI4_Slave_IFC dma_server = near_mem.dma_server;
+   interface dma_server = near_mem.dma_server;
+`endif
 
    // ----------------------------------------------------------------
    // External interrupts

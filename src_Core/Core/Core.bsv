@@ -369,10 +369,12 @@ module mkCore (Core_IFC #(N_External_Interrupt_Sources));
    interface AXI4_Lite_Slave_IFC  cpu_dmem_slave = cpu.dmem_slave;
 `endif
 
+`ifdef COHERENT_DMA
    // ----------------------------------------------------------------
    // Interface to 'coherent DMA' port of optional L2 cache
 
    interface AXI4_Slave_IFC  dma_server = cpu.dma_server;
+`endif
 
    // ----------------------------------------------------------------
    // External interrupt sources

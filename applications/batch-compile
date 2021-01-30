@@ -120,7 +120,7 @@ def main (argv) :
     reportFName = fn_createLogger (True, 'batch-compile', main_prog) 
 
     # What data types do we work with?
-    if args.data_types == None : data_types = ['FLOAT', 'FLOAT_POSIT', 'POSIT']
+    if args.data_types == None : data_types = ['DOUBLE', 'FLOAT', 'FLOAT_POSIT', 'POSIT']
     else : data_types = args.data_types
 
     vszs  = [32, 64, 128, 256]
@@ -152,12 +152,12 @@ def main (argv) :
             data_type_val = 'TYPE='+data_type
 
             # set pwidth based on data type
-            if data_type == 'FLOAT' : pwidths = [8]
+            if (data_type == 'FLOAT') or (data_type == 'DOUBLE') : pwidths = [8]
             else : pwidths = [8, 16, 24, 32]
 
             # for data-generator: set operarand data type (only for floats)
-            if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) :
-                operand_type = 'f32'
+            if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) : operand_type = 'f32'
+            elif (data_type == 'DOUBLE')                                : operand_type = 'f64'
 
             for pw in pwidths :
                 pw_val = 'PWIDTH=PWIDTH_'+str(pw)
@@ -316,12 +316,12 @@ def main (argv) :
         for data_type in data_types :
             data_type_val = 'TYPE='+data_type
 
-            if data_type == 'FLOAT' : pwidths = [8]
-            else                    : pwidths = [8, 16, 24, 32]
+            if (data_type == 'FLOAT') or (data_type == 'DOUBLE') : pwidths = [8]
+            else                                                 : pwidths = [8, 16, 24, 32]
 
             # for data-generator: set operarand data type (only for floats)
-            if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) :
-                operand_type = 'f32'
+            if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) : operand_type = 'f32'
+            elif (data_type == 'DOUBLE')                                : operand_type = 'f64'
 
             for pw in pwidths :
                 pw_val = 'PWIDTH=PWIDTH_'+str(pw)
@@ -344,6 +344,9 @@ def main (argv) :
                     # the simulation log file name
                     if data_type == 'FLOAT' :
                         hw_dir_name = 'RV32ACFIMSU_verilator'
+
+                    elif data_type == 'DOUBLE' :
+                        hw_dir_name = 'RV32ACDFIMSU_verilator'
 
                     else :
                         hw_dir_name = 'RV32ACFIMSU_P'+str(pw)+'_verilator'

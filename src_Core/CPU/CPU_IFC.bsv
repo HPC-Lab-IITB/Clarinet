@@ -52,10 +52,12 @@ interface CPU_IFC;
    interface AXI4_Lite_Slave_IFC #(Wd_Addr, Wd_Data, Wd_User)  dmem_slave;
 `endif
 
+`ifdef COHERENT_DMA
    // ----------------
    // Interface to 'coherent DMA' port of optional L2 cache
 
    interface AXI4_Slave_IFC #(Wd_Id_Dma, Wd_Addr_Dma, Wd_Data_Dma, Wd_User_Dma)  dma_server;
+`endif
 
    // ----------------------------------------------------------------
 

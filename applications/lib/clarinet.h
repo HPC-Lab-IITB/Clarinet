@@ -15,6 +15,7 @@ void fn_posit_p_fma (unsigned int a, unsigned int b);
 #endif
 void fn_posit_fma (float a, float b);
 float fn_float_fma (float a, float b, float acc);
+double fn_double_fma (double a, double b, double acc);
 
 
 // --------
@@ -58,6 +59,7 @@ unsigned int fn_posit_p_vdp (int r, unsigned int a[], unsigned int b[]);
 #endif
 float fn_posit_vdp (int r, float a[], float b[]);
 float fn_float_vdp (int r, float a[], float b[]);
+double fn_double_vdp (int r, double a[], double b[]);
 float fn_float_optimized_vdp (int r, float a[], float b[]);
 
 
@@ -78,6 +80,7 @@ void n_posit_p_gemv           (unsigned int   v_acc[], int r, unsigned int   a[]
 #endif
 void fn_posit_gemv            (float v_acc[], int r, float a[][VSZ], float b[]);
 void fn_float_gemv            (float v_acc[], int r, float a[][VSZ], float b[]);
+void fn_double_gemv           (double v_acc[], int r, double a[][VSZ], double b[]);
 void fn_float_optimized_gemv  (float v_acc[], int r, float a[][VSZ], float b[]);
 
 // --------
@@ -95,6 +98,7 @@ void n_posit_p_gemm           (unsigned int   m_acc[][VSZ], int r, unsigned int 
 void n_posit_p_gemm           (unsigned int   m_acc[][VSZ], int r, unsigned int   a[][VSZ], unsigned int   b[][VSZ]);
 #endif
 #endif
-void fn_posit_gemm            (float m_acc[][VSZ], int r, float a[][VSZ], float b[][VSZ]);
-void fn_float_gemm            (float m_acc[][VSZ], int r, float a[][VSZ], float b[][VSZ]);
-void fn_float_optimized_gemm  (float m_acc[][VSZ], int r, float a[][VSZ], float b[][VSZ]);
+void fn_posit_gemm            (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
+void fn_double_gemm           (double  m_acc[][VSZ], int r, double   a[][VSZ], double  b[][VSZ]);
+void fn_float_gemm            (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
+void fn_float_optimized_gemm  (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);

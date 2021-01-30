@@ -53,7 +53,7 @@ def main (argv) :
             , action="store"
             , dest='data_type'
             , default='f32'
-            , help="""Data type used in the computation [f32, p8, p16, p24, p32]\n"""
+            , help="""Data type used in the computation [f64, f32, p8, p16, p24, p32]\n"""
             )
     parser.add_argument (
               '--out'
@@ -88,6 +88,9 @@ def main (argv) :
     # The 'seed' data arrays which will be repeated to create the vectors of desired size
     # random float vals from farhad's GBLAS data generator
     seed_vals = {}
+    seed_vals ['f64'] = [ '3.4050474167', '3.1847724915', '7.3107628822', '-5.6170530319', '-4.7297372818', '4.5974335670', '6.0904574394', '-3.0683014393', '4.1741681099', '-3.3324038982', '-7.1214756966', '2.7567198277', '-3.4179165363', '-9.2278394699', '8.9482812881', '-0.3960950971' ]
+
+    # random p8 vals from farhad's GBLAS data generator
     seed_vals ['f32'] = [ '3.4050474167', '3.1847724915', '7.3107628822', '-5.6170530319', '-4.7297372818', '4.5974335670', '6.0904574394', '-3.0683014393', '4.1741681099', '-3.3324038982', '-7.1214756966', '2.7567198277', '-3.4179165363', '-9.2278394699', '8.9482812881', '-0.3960950971' ]
 
     # random p8 vals from farhad's GBLAS data generator
@@ -106,29 +109,25 @@ def main (argv) :
     repetition = args.vec_size // 16
 
     operand_decl = 'static '
-    if (args.data_type == 'f32') :
+    if (args.data_type == 'f64') :
+        # generate 64-bit FP arrays
+        operand_decl = operand_decl + 'double '
+
+    elif (args.data_type == 'f32') :
         # generate 32-bit FP arrays
         operand_decl = operand_decl + 'float '
-        operand_a_decl = 'static float v_a [VSZ]'
-        operand_b_decl = 'static float v_b [VSZ]'
 
     elif (args.data_type == 'p8') :
         # generate 8-bit posit arrays
         operand_decl = operand_decl + 'unsigned char '
-        operand_a_decl = 'static unsigned char v_a [VSZ]'
-        operand_b_decl = 'static unsigned char v_b [VSZ]'
 
     elif (args.data_type == 'p16') :
         # generate 16-bit posit arrays
         operand_decl = operand_decl + 'unsigned short '
-        operand_a_decl = 'static unsigned short v_a [VSZ]'
-        operand_b_decl = 'static unsigned short v_b [VSZ]'
 
     elif ((args.data_type == 'p24') or (args.data_type == 'p32')):
         # generate 24-bit/32-bit posit arrays
         operand_decl = operand_decl + 'unsigned int '
-        operand_a_decl = 'static unsigned int v_a [VSZ]'
-        operand_b_decl = 'static unsigned int v_b [VSZ]'
 
     else :
         sys.stderr.write ("[ERROR]: Unrecognized data type: '%s'. Look at usage.\n" % args.data_type)

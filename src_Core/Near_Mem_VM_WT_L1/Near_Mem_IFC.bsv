@@ -119,10 +119,12 @@ interface Near_Mem_IFC;
    interface Server #(Token, Token) sfence_vma_server;
 `endif
 
+`ifdef COHERENT_DMA
    // ----------------------------------------------------------------
    // Interface to 'coherent DMA' port of optional L2 cache
 
    interface AXI4_Slave_IFC #(Wd_Id_Dma, Wd_Addr_Dma, Wd_Data_Dma, Wd_User_Dma)  dma_server;
+`endif
 
    // ----------------------------------------------------------------
    // Misc. control and status

@@ -22,7 +22,11 @@ int main (void) {
    unsigned int acc [VSZ][VSZ];
 #endif
 #else
+#ifdef DOUBLE
+   double acc [VSZ][VSZ];
+#else
    float acc [VSZ][VSZ];
+#endif
 #endif
 
    uint32_t start = 0;
@@ -41,6 +45,12 @@ int main (void) {
 #ifdef FLOAT
    start=read_cycle();
    fn_float_gemm (acc, VSZ, m_a, m_b);
+   end=read_cycle();
+#endif
+
+#ifdef DOUBLE
+   start=read_cycle();
+   fn_double_gemm (acc, VSZ, m_a, m_b);
    end=read_cycle();
 #endif
 

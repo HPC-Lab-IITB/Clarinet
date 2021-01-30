@@ -65,6 +65,19 @@ float fn_float_fma (float a, float b, float acc) {
    return (f_res);
 }
 
+double fn_double_fma (double a, double b, double acc) {
+   // input float values
+   register double f_a asm ("fa0") = a;
+   register double f_b asm ("fa1") = b;
+   register double f_acc asm ("fa2") = acc;
+   register double f_prod asm ("fa3");
+   register double f_res asm ("fa4");
+
+   asm ("fmul.d    fa3, fa0, fa1" : "=f" (f_prod) : "f" (f_a), "f" (f_b));
+   asm ("fadd.d    fa4, fa3, fa2" : "=f" (f_res)  : "f" (f_prod), "f" (f_acc));
+   return (f_res);
+}
+
 // --------
 // Quire initialization macros
 // the _p_ indicates that the input values are posit type
@@ -246,11 +259,30 @@ float fn_float_vdp (int r, float v_a[], float v_b[]) {
    return (acc);
 }
 
+// double input, double compute, double output
+double fn_double_vdp (int r, double v_a[], double v_b[]) {
+   double acc = 0.0;
+   int idx = 0;
+
+   for (idx=0; idx < r; idx ++) acc += fn_double_fma (v_a[idx], v_b[idx], acc);
+
+   return (acc);
+}
+
 // Float input, float compute, float output
 void fn_float_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
    int idx = 0;
    for (idx=0; idx < r; idx ++)
       v_acc[idx] = fn_float_vdp (r, m_a[idx], v_b);
+
+   return;
+}
+
+// Double input, double compute, double output
+void fn_double_gemv (double v_acc[], int r, double m_a[][VSZ], double v_b[]) {
+   int idx = 0;
+   for (idx=0; idx < r; idx ++)
+      v_acc[idx] = fn_double_vdp (r, m_a[idx], v_b);
 
    return;
 }
@@ -261,6 +293,21 @@ void fn_float_gemm (float m_acc[][VSZ], int dimension, float m_a[][VSZ], float m
    float v_acc[VSZ];
    for (ridx=0; ridx < dimension; ridx++) {
       fn_float_gemv (v_acc, dimension, m_a, m_b[ridx]);
+      // implement a transpose to get the result matrix
+      for (cidx=0; cidx < dimension; cidx++) {
+         m_acc[cidx][ridx] = v_acc[cidx];
+      }
+   }
+
+   return;
+}
+
+// double input, double compute, double output. The second matrix is the transposed version
+void fn_double_gemm (double m_acc[][VSZ], int dimension, double m_a[][VSZ], double m_b[][VSZ]) {
+   int ridx = 0; int cidx = 0;
+   double v_acc[VSZ];
+   for (ridx=0; ridx < dimension; ridx++) {
+      fn_double_gemv (v_acc, dimension, m_a, m_b[ridx]);
       // implement a transpose to get the result matrix
       for (cidx=0; cidx < dimension; cidx++) {
          m_acc[cidx][ridx] = v_acc[cidx];

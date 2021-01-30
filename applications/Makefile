@@ -1,7 +1,7 @@
 # -*- makefile -*-
 
 
-ARCH ?= rv32imafc
+ARCH ?= rv32gc
 ABI ?= ilp32f
 # needed for uart.c
 CLOCK_MHZ ?= 71

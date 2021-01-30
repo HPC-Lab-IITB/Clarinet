@@ -266,12 +266,13 @@ module mkNear_Mem (Near_Mem_IFC);
 `ifdef ISA_PRIV_S
    interface Server sfence_vma_server = toGPServer (f_sfence_vma_reqs, f_sfence_vma_rsps);
 `endif
-
+`ifdef COHERENT_DMA
    // ----------------------------------------------------------------
    // Interface to 'coherent DMA' port of optional L2 cache
    // Tied off: no L2 cache in WT_L1
 
    interface AXI4_Slave_IFC dma_server = dummy_AXI4_Slave_ifc;
+`endif
 
    // ----------------------------------------------------------------
    // Misc. control and status
