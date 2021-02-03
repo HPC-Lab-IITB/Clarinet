@@ -102,3 +102,6 @@ void fn_posit_gemm            (float   m_acc[][VSZ], int r, float    a[][VSZ], f
 void fn_double_gemm           (double  m_acc[][VSZ], int r, double   a[][VSZ], double  b[][VSZ]);
 void fn_float_gemm            (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
 void fn_float_optimized_gemm  (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
+
+void fn_float_givens          (int dim, float  mat[][VSZ], int r, int c);
+void fn_double_givens         (int dim, double mat[][VSZ], int r, int c);

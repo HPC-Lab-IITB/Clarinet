@@ -341,15 +341,19 @@ def main (argv) :
 
                     # ------
                     # do not include Posit HW for a pure FP run. Sort out the hw directory and
-                    # the simulation log file name
+                    # the simulation log file name. The givens application requires access to
+                    # FDIV and FSQRT
                     if data_type == 'FLOAT' :
-                        hw_dir_name = 'RV32ACFIMSU_verilator'
+                        if args.main == 'givens' : hw_dir_name = 'RV32ACFIMSU_FDIV_verilator'
+                        else                     : hw_dir_name = 'RV32ACFIMSU_verilator'
 
                     elif data_type == 'DOUBLE' :
-                        hw_dir_name = 'RV32ACDFIMSU_verilator'
+                        if args.main == 'givens' : hw_dir_name = 'RV32ACDFIMSU_FDIV_verilator'
+                        else                     : hw_dir_name = 'RV32ACDFIMSU_verilator'
 
                     else :
-                        hw_dir_name = 'RV32ACFIMSU_P'+str(pw)+'_verilator'
+                        if args.main == 'givens' : hw_dir_name = 'RV32ACFIMSU_FDIV_P'+str(pw)+'_verilator'
+                        else                     : hw_dir_name = 'RV32ACFIMSU_P'+str(pw)+'_verilator'
 
                     hw_dir_path = os.path.join (HW_BDIR, hw_dir_name)
 

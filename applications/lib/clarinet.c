@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "clarinet.h"
 
 // --------
@@ -356,3 +357,44 @@ void fn_float_optimized_gemm (float m_acc[][VSZ], int dimension, float m_a[][VSZ
 }
 
 // --------
+// Givens routines
+//
+void fn_float_givens (int dim, float mat[][VSZ], int r, int c) {
+   float tmp, sine_t, cosine_t;
+   float row1[dim], row2[dim];
+   for (int j=0; j<r-1; j++) {
+      for (int i=r-1; i>j; i--) {
+         tmp = sqrt(pow(mat[i][j],2) + pow(mat[i-1][j],2));
+	 sine_t = (mat[i][j])/tmp;
+	 cosine_t = (mat[i-1][j])/tmp;
+	 for(int k=j; k<r; k++){
+            row1[k] = cosine_t*mat[i-1][k] + sine_t*mat[i][k];
+            row2[k] = -sine_t*mat[i-1][k] + cosine_t*mat[i][k];
+         }
+	 for(int k=j; k<r; k++){
+            mat[i-1][k] = row1[k];
+            mat[i][k] = row2[k];
+         }
+      }
+   }
+}
+
+void fn_double_givens (int dim, double mat[][VSZ], int r, int c) {
+   double tmp, sine_t, cosine_t;
+   double row1[dim], row2[dim];
+   for (int j=0; j<r-1; j++) {
+      for (int i=r-1; i>j; i--) {
+         tmp = sqrt(pow(mat[i][j],2) + pow(mat[i-1][j],2));
+	 sine_t = (mat[i][j])/tmp;
+	 cosine_t = (mat[i-1][j])/tmp;
+	 for(int k=j; k<r; k++){
+            row1[k] = cosine_t*mat[i-1][k] + sine_t*mat[i][k];
+            row2[k] = -sine_t*mat[i-1][k] + cosine_t*mat[i][k];
+         }
+	 for(int k=j; k<r; k++){
+            mat[i-1][k] = row1[k];
+            mat[i][k] = row2[k];
+         }
+      }
+   }
+}

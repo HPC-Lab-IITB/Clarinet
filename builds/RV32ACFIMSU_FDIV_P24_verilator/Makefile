@@ -16,6 +16,7 @@ BSC_COMPILATION_FLAGS += \
 	-D SV32  \
 	-D ISA_I  -D ISA_M  -D ISA_A  -D ISA_F  -D ISA_C  \
 	-D INCLUDE_FDIV \
+	-D INCLUDE_FSQRT \
 	-D SHIFT_BARREL    \
 	-D MULT_SYNTH    \
 	-D Near_Mem_Caches    \

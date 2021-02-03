@@ -23,18 +23,6 @@ BSC_COMPILATION_FLAGS += \
 	-D FABRIC64    \
 	-D WATCH_TOHOST    \
 
-# Compilation flags and paths for Melodica
-BSC_COMPILATION_FLAGS += \
-	-D POSIT       	\
-	-D QUILLS	\
-	-D INCLUDE_PDIV \
-
-# For Melodica debug statements
-# BSC_COMPILATION_FLAGS += -D RANDOM -D RANDOM_PRINT \
-
-# paths to melodica bsv code
-CUSTOM_DIRS = ./src_bsv:$(REPO)/Melodica/src_bsv:$(REPO)/Melodica/src_bsv/common:$(REPO)/Melodica/src_bsv/lib:$(REPO)/Melodica/src_bsv/FtoP:$(REPO)/Melodica/src_bsv/Fused_Op:$(REPO)/Melodica/src_bsv/PtoF:$(REPO)/Melodica/src_bsv/PtoQ:$(REPO)/Melodica/src_bsv/QtoP
-
 # Default ISA test
 
 TEST ?= rv32ui-p-add
