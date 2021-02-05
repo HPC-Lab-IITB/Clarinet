@@ -13,23 +13,26 @@ int main (void) {
    uint32_t elapsed = 0;
 
 #ifdef FLOAT
-   float acc;
    start=read_cycle();
    fn_float_givens (VSZ, m_a, VSZ, VSZ);
    end=read_cycle();
 #endif
 
 #ifdef FLOAT_POSIT
-   float acc;
    start=read_cycle();
    fn_posit_givens (VSZ, m_a, VSZ, VSZ);
    end=read_cycle();
 #endif
 
 #ifdef DOUBLE
-   double acc;
    start=read_cycle();
    fn_double_givens (VSZ, m_a, VSZ, VSZ);
+   end=read_cycle();
+#endif
+
+#ifdef POSIT
+   start=read_cycle();
+   fn_posit_p_givens (VSZ, m_a, VSZ, VSZ);
    end=read_cycle();
 #endif
 

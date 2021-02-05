@@ -4,7 +4,7 @@
 #
 # --------
 #  Command line arguments
-# The type of computation being run (POSIT, FLOAT_POSIT, FLOAT)
+# The type of computation being run (POSIT, FLOAT_POSIT, FLOAT, DOUBLE)
 TYPE ?= POSIT
 
 # The width of the posit input data values. This is only relevant when TYPE = POSIT

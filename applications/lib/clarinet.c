@@ -66,6 +66,7 @@ float fn_float_fma (float a, float b, float acc) {
    return (f_res);
 }
 
+#ifdef DOUBLE
 double fn_double_fma (double a, double b, double acc) {
    // input float values
    register double f_a asm ("fa0") = a;
@@ -78,6 +79,134 @@ double fn_double_fma (double a, double b, double acc) {
    asm ("fadd.d    fa4, fa3, fa2" : "=f" (f_res)  : "f" (f_prod), "f" (f_acc));
    return (f_res);
 }
+#endif
+
+
+// --------
+// FMS macros
+// the _p_ indicates that the input values are posit type
+#ifdef POSIT
+#ifdef PWIDTH_8
+void fn_posit_p_fms (unsigned char a, unsigned char b) {
+#endif
+#ifdef PWIDTH_16
+void fn_posit_p_fms (unsigned short a, unsigned short b) {
+#endif
+#ifdef PWIDTH_24
+void fn_posit_p_fms (unsigned int a, unsigned int b) {
+#endif
+#ifdef PWIDTH_32
+void fn_posit_p_fms (unsigned int a, unsigned int b) {
+#endif
+   // input posit values in GPR
+   register unsigned int gA asm ("a0") = a;
+   register unsigned int gB asm ("a1") = b;
+
+   // intermediate posit values in PPR
+   register float pA asm ("ft0");
+   register float pB asm ("ft1");
+
+   asm ("pmv.w.x ft0, a0" : "=f" (pA) : "r" (gA));
+   asm ("pmv.w.x ft1, a1" : "=f" (pB) : "r" (gB));
+
+   // for instrns which do not have a rd, using zeros for the rd
+   // field is necessary as that is the instruction encoding.
+   asm ("fms.p    ft0, ft0, ft1" : "=f" (pA) : "f" (pA), "f" (pB));
+   return;
+}
+#endif
+
+void fn_posit_fms (float a, float b) {
+   // input float values
+   register float fA asm ("fa0") = a;
+   register float fB asm ("fa1") = b;
+
+   // intermediate posit values
+   register float pA asm ("ft0");
+   register float pB asm ("ft1");
+
+   asm ("fcvt.p.s ft0, fa0" : "=f" (pA) : "f" (fA));
+   asm ("fcvt.p.s ft1, fa1" : "=f" (pB) : "f" (fB));
+   // for instrns which do not have a rd, using zeros for the rd
+   // field is necessary as that is the instruction encoding.
+   asm ("fms.p    ft0, ft0, ft1" : "=f" (pA) : "f" (pA), "f" (pB));
+   return;
+}
+
+
+// --------
+// FDA macros
+// the _p_ indicates that the input values are posit type
+#ifdef POSIT
+#ifdef PWIDTH_8
+void fn_posit_p_fda (unsigned char a, unsigned char b) {
+#endif
+#ifdef PWIDTH_16
+void fn_posit_p_fda (unsigned short a, unsigned short b) {
+#endif
+#ifdef PWIDTH_24
+void fn_posit_p_fda (unsigned int a, unsigned int b) {
+#endif
+#ifdef PWIDTH_32
+void fn_posit_p_fda (unsigned int a, unsigned int b) {
+#endif
+   // input posit values in GPR
+   register unsigned int gA asm ("a0") = a;
+   register unsigned int gB asm ("a1") = b;
+
+   // intermediate posit values in PPR
+   register float pA asm ("ft0");
+   register float pB asm ("ft1");
+
+   asm ("pmv.w.x ft0, a0" : "=f" (pA) : "r" (gA));
+   asm ("pmv.w.x ft1, a1" : "=f" (pB) : "r" (gB));
+
+   // for instrns which do not have a rd, using zeros for the rd
+   // field is necessary as that is the instruction encoding.
+   asm ("fda.p    ft0, ft0, ft1" : "=f" (pA) : "f" (pA), "f" (pB));
+   return;
+}
+#endif
+
+void fn_posit_fda (float a, float b) {
+   // input float values
+   register float fA asm ("fa0") = a;
+   register float fB asm ("fa1") = b;
+
+   // intermediate posit values
+   register float pA asm ("ft0");
+   register float pB asm ("ft1");
+
+   asm ("fcvt.p.s ft0, fa0" : "=f" (pA) : "f" (fA));
+   asm ("fcvt.p.s ft1, fa1" : "=f" (pB) : "f" (fB));
+   // for instrns which do not have a rd, using zeros for the rd
+   // field is necessary as that is the instruction encoding.
+   asm ("fda.p    ft0, ft0, ft1" : "=f" (pA) : "f" (pA), "f" (pB));
+   return;
+}
+
+
+// --------
+// FSQRT macros
+// Using the math sqrt does not seem to infer fsqrt.s instruction. This function explicitly uses
+// the fsqrt instruction
+float fn_float_sqrt (float a) {
+   register float f_a asm ("fa0") = a;
+   register float f_res asm ("fa3");
+   asm ("fsqrt.s   fa3, fa0" : "=f" (f_res) : "f" (f_a));
+   return (f_res);
+}
+
+#ifdef DOUBLE
+// Using the math sqrt does not seem to infer fsqrt.s instruction. This function explicitly uses
+// the fsqrt instruction
+double fn_double_sqrt (double a) {
+   register double f_a asm ("fa0") = a;
+   register double f_res asm ("fa3");
+   asm ("fsqrt.d   fa3, fa0" : "=f" (f_res) : "f" (f_a));
+   return (f_res);
+}
+#endif
 
 // --------
 // Quire initialization macros
@@ -120,7 +249,7 @@ unsigned int fn_read_p_quire (void) {
 unsigned int fn_read_p_quire (void) {
 #endif
    register float pQ asm ("f0");
-   register float gO asm ("a0");
+   register unsigned int gO asm ("a0");
    asm ("fcvt.p.r f0, f0" : "=f" (pQ) : "f" (pQ));
    asm ("pmv.x.w  a0, f0" : "=r" (gO) : "f" (pQ));
    return (gO);
@@ -134,6 +263,31 @@ float fn_read_quire (void) {
    asm ("fcvt.s.p fa0, f0" : "=f" (fO) : "f" (pQ));
    return (fO);
 }
+
+
+// --------
+// Float to Posit conversion
+#ifdef POSIT
+#ifdef PWIDTH_8
+unsigned char  fn_float_to_posit (float a) {
+#endif
+#ifdef PWIDTH_16
+unsigned short fn_float_to_posit (float a) {
+#endif
+#ifdef PWIDTH_24
+unsigned int   fn_float_to_posit (float a) {
+#endif
+#ifdef PWIDTH_32
+unsigned int   fn_float_to_posit (float a) {
+#endif
+   register float fI asm ("fa0") = a;
+   register float pI asm ("ft1");
+   register unsigned int gO asm ("a0");
+   asm ("fcvt.p.s ft1, fa0" : "=f" (pI) : "f" (fI));
+   asm ("pmv.x.w   a0, ft1" : "=r" (gO) : "f" (pI));
+   return (gO);
+}
+#endif
 
 // --------
 // VDP Routines
@@ -260,6 +414,7 @@ float fn_float_vdp (int r, float v_a[], float v_b[]) {
    return (acc);
 }
 
+#ifdef DOUBLE
 // double input, double compute, double output
 double fn_double_vdp (int r, double v_a[], double v_b[]) {
    double acc = 0.0;
@@ -269,6 +424,7 @@ double fn_double_vdp (int r, double v_a[], double v_b[]) {
 
    return (acc);
 }
+#endif
 
 // Float input, float compute, float output
 void fn_float_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
@@ -279,6 +435,7 @@ void fn_float_gemv (float v_acc[], int r, float m_a[][VSZ], float v_b[]) {
    return;
 }
 
+#ifdef DOUBLE
 // Double input, double compute, double output
 void fn_double_gemv (double v_acc[], int r, double m_a[][VSZ], double v_b[]) {
    int idx = 0;
@@ -287,6 +444,7 @@ void fn_double_gemv (double v_acc[], int r, double m_a[][VSZ], double v_b[]) {
 
    return;
 }
+#endif
 
 // Float input, float compute, float output. The second matrix is the transposed version
 void fn_float_gemm (float m_acc[][VSZ], int dimension, float m_a[][VSZ], float m_b[][VSZ]) {
@@ -303,6 +461,7 @@ void fn_float_gemm (float m_acc[][VSZ], int dimension, float m_a[][VSZ], float m
    return;
 }
 
+#ifdef DOUBLE
 // double input, double compute, double output. The second matrix is the transposed version
 void fn_double_gemm (double m_acc[][VSZ], int dimension, double m_a[][VSZ], double m_b[][VSZ]) {
    int ridx = 0; int cidx = 0;
@@ -317,6 +476,7 @@ void fn_double_gemm (double m_acc[][VSZ], int dimension, double m_a[][VSZ], doub
 
    return;
 }
+#endif
 
 // Float input, float compute, float output. Code written to allow compiler optimization wrt
 // function calls.
@@ -364,7 +524,8 @@ void fn_float_givens (int dim, float mat[][VSZ], int r, int c) {
    float row1[dim], row2[dim];
    for (int j=0; j<r-1; j++) {
       for (int i=r-1; i>j; i--) {
-         tmp = sqrt(pow(mat[i][j],2) + pow(mat[i-1][j],2));
+         tmp = ((mat[i][j]*mat[i][j]) + (mat[i-1][j]*mat[i-1][j]));
+         tmp = fn_float_sqrt (tmp);
 	 sine_t = (mat[i][j])/tmp;
 	 cosine_t = (mat[i-1][j])/tmp;
 	 for(int k=j; k<r; k++){
@@ -379,12 +540,14 @@ void fn_float_givens (int dim, float mat[][VSZ], int r, int c) {
    }
 }
 
+#ifdef DOUBLE
 void fn_double_givens (int dim, double mat[][VSZ], int r, int c) {
    double tmp, sine_t, cosine_t;
    double row1[dim], row2[dim];
    for (int j=0; j<r-1; j++) {
       for (int i=r-1; i>j; i--) {
-         tmp = sqrt(pow(mat[i][j],2) + pow(mat[i-1][j],2));
+         tmp = ((mat[i][j]*mat[i][j]) + (mat[i-1][j]*mat[i-1][j]));
+         tmp = fn_double_sqrt (tmp);
 	 sine_t = (mat[i][j])/tmp;
 	 cosine_t = (mat[i-1][j])/tmp;
 	 for(int k=j; k<r; k++){
@@ -398,3 +561,114 @@ void fn_double_givens (int dim, double mat[][VSZ], int r, int c) {
       }
    }
 }
+#endif
+
+// Float input, posit compute, float output
+void fn_posit_givens (int dim, float mat[][VSZ], int r, int c) {
+   float tmp, sine_t, cosine_t;
+   float row1[dim], row2[dim];
+   for (int j=0; j<r-1; j++) {
+      for (int i=r-1; i>j; i--) {
+         // compute tmp
+         fn_init_p_quire (0);
+         fn_posit_fma (mat[i][j], mat[i][j]);
+         fn_posit_fma (mat[i-1][j], mat[i-1][j]);
+         tmp = fn_read_quire(); tmp = fn_float_sqrt (tmp);
+
+         // compute sine_t
+         fn_init_p_quire (0);
+         fn_posit_fda (mat[i][j], tmp);
+	 sine_t = fn_read_quire();
+
+         // compute cosine_t
+         fn_init_p_quire (0);
+         fn_posit_fda (mat[i-1][j], tmp);
+	 cosine_t = fn_read_quire ();
+
+	 for(int k=j; k<r; k++){
+            // compute row1[k]
+            fn_init_p_quire (0);
+            fn_posit_fma (cosine_t, mat[i-1][k]);
+            fn_posit_fma (sine_t, mat[i][k]);
+            row1[k] = fn_read_quire ();
+
+            // compute row2[k]
+            fn_init_p_quire (0);
+            fn_posit_fma (cosine_t, mat[i][k]);
+            fn_posit_fms (sine_t, mat[i-1][k]);
+            row2[k] = fn_read_quire ();
+         }
+
+	 for(int k=j; k<r; k++){
+            mat[i-1][k] = row1[k];
+            mat[i][k] = row2[k];
+         }
+      }
+   }
+}
+
+
+// Float input, posit compute, float output
+#ifdef POSIT
+#ifdef PWIDTH_8
+void fn_posit_p_givens (int dim, unsigned char mat[][VSZ], int r, int c) {
+   unsigned char sine_t, cosine_t, p_matsq;
+   unsigned char row1[dim], row2[dim];
+#endif
+#ifdef PWIDTH_16
+void fn_posit_p_givens (int dim, unsigned short mat[][VSZ], int r, int c) {
+   unsigned short sine_t, cosine_t, p_matsq;
+   unsigned short row1[dim], row2[dim];
+#endif
+#ifdef PWIDTH_24
+void fn_posit_p_givens (int dim, unsigned int mat[][VSZ], int r, int c) {
+   unsigned int sine_t, cosine_t, p_matsq;
+   unsigned int row1[dim], row2[dim];
+#endif
+#ifdef PWIDTH_32
+void fn_posit_p_givens (int dim, unsigned int mat[][VSZ], int r, int c) {
+   unsigned int sine_t, cosine_t, p_matsq;
+   unsigned int row1[dim], row2[dim];
+#endif
+   float f_matsq;
+   for (int j=0; j<r-1; j++) {
+      for (int i=r-1; i>j; i--) {
+         // compute f_matsq
+         fn_init_p_quire (0);
+         fn_posit_p_fma (mat[i][j], mat[i][j]);
+         fn_posit_p_fma (mat[i-1][j], mat[i-1][j]);
+         f_matsq = fn_read_quire(); f_matsq = fn_float_sqrt (f_matsq);
+         p_matsq = fn_float_to_posit (f_matsq);
+
+         // compute sine_t
+         fn_init_p_quire (0);
+         fn_posit_p_fda (mat[i][j], p_matsq);
+	 sine_t = fn_read_p_quire();
+
+         // compute cosine_t
+         fn_init_p_quire (0);
+         fn_posit_fda (mat[i-1][j], p_matsq);
+	 cosine_t = fn_read_p_quire ();
+
+	 for(int k=j; k<r; k++){
+            // compute row1[k]
+            fn_init_p_quire (0);
+            fn_posit_p_fma (cosine_t, mat[i-1][k]);
+            fn_posit_p_fma (sine_t, mat[i][k]);
+            row1[k] = fn_read_p_quire ();
+
+            // compute row2[k]
+            fn_init_p_quire (0);
+            fn_posit_fma (cosine_t, mat[i][k]);
+            fn_posit_fms (sine_t, mat[i-1][k]);
+            row2[k] = fn_read_p_quire ();
+         }
+
+	 for(int k=j; k<r; k++){
+            mat[i-1][k] = row1[k];
+            mat[i][k] = row2[k];
+         }
+      }
+   }
+}
+#endif

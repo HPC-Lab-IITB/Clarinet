@@ -150,6 +150,8 @@ def main (argv) :
         main_val = 'MAIN='+main_prog
         for data_type in data_types :
             data_type_val = 'TYPE='+data_type
+            if data_type == 'DOUBLE' : arch_val = 'ARCH=rv32gc'
+            else                     : arch_val = 'ARCH=rv32imafc'
 
             # set pwidth based on data type
             if (data_type == 'FLOAT') or (data_type == 'DOUBLE') : pwidths = [8]
@@ -220,13 +222,14 @@ def main (argv) :
                                     , cwd=os.path.join (CWD, '..', 'lib'))
                         data_gen_id.wait()
 
-                    logging.info ("make %s %s %s %s all", main_val, data_type_val, pw_val, vsz_val)
+                    logging.info ("make %s %s %s %s %s all", main_val, data_type_val, pw_val, vsz_val, arch_val)
                     makeID = subprocess.Popen (
                                     [     "/usr/bin/make"
                                         , main_val
                                         , data_type_val
                                         , pw_val
                                         , vsz_val
+                                        , arch_val
                                         , 'all'
                                     ]
                                 , stdout=makeLog
