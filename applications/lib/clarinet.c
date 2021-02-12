@@ -58,11 +58,9 @@ float fn_float_fma (float a, float b, float acc) {
    register float f_a asm ("fa0") = a;
    register float f_b asm ("fa1") = b;
    register float f_acc asm ("fa2") = acc;
-   register float f_prod asm ("fa3");
-   register float f_res asm ("fa4");
+   register float f_res asm ("fa3");
 
-   asm ("fmul.s    fa3, fa0, fa1" : "=f" (f_prod) : "f" (f_a), "f" (f_b));
-   asm ("fadd.s    fa4, fa3, fa2" : "=f" (f_res)  : "f" (f_prod), "f" (f_acc));
+   asm ("fmadd.s   fa3, fa0, fa1, fa2" : "=f" (f_res) : "f" (f_a), "f" (f_b), "f" (f_acc));
    return (f_res);
 }
 
@@ -72,11 +70,9 @@ double fn_double_fma (double a, double b, double acc) {
    register double f_a asm ("fa0") = a;
    register double f_b asm ("fa1") = b;
    register double f_acc asm ("fa2") = acc;
-   register double f_prod asm ("fa3");
-   register double f_res asm ("fa4");
+   register double f_res asm ("fa3");
 
-   asm ("fmul.d    fa3, fa0, fa1" : "=f" (f_prod) : "f" (f_a), "f" (f_b));
-   asm ("fadd.d    fa4, fa3, fa2" : "=f" (f_res)  : "f" (f_prod), "f" (f_acc));
+   asm ("fmadd.d   fa3, fa0, fa1, fa2" : "=f" (f_res) : "f" (f_a), "f" (f_b), "f" (f_acc));
    return (f_res);
 }
 #endif
