@@ -22,8 +22,8 @@ package Posit_Numeric_Types;
 // ================================================================
 // Basic sizes, from which everything else is derived
 
-// PositWidth        = 16    (= 0x10)    (bits in posit number)
-// ExpWidth          =  1    (= 0x01)    (width of exponent field)
+// PositWidth        =  8    (= 0x08)    (bits in posit number)
+// ExpWidth          =  0    (= 0x00)    (width of exponent field)
 // FloatWidth          = 32    (= 0x20)    (bits of Floating point number)
 
 // ================================================================
@@ -31,36 +31,36 @@ package Posit_Numeric_Types;
 
 // Posit Fields ---------------
 
-typedef        16   PositWidth                    ;    // (basic)
-typedef         1   ExpWidth                      ;    // (basic)
+typedef         8   PositWidth                    ;    // (basic)
+typedef         0   ExpWidth                      ;    // (basic)
 typedef        32   FloatWidth                    ;    // (basic)
 typedef         8   FloatExpWidth                 ;    // Exponent width of single precision float
 typedef        23   FloatFracWidth                ;    // Fraction width of single precision float
 typedef       127   FloatBias                     ;    // Bais for single precision float
-typedef        15   PositWidthMinus1              ;    // PositWidth - 1
-typedef        13   PositWidthMinus3              ;    // PositWidth - 3
-typedef         4   BitsPerPositWidth             ;    // log2 (PositWidth)
-typedef         4   Iteration                     ;    // log2 (PositWidth-1)
-typedef         5   RegimeWidth                   ;    // log2 (PositWidth) + 1
+typedef         7   PositWidthMinus1              ;    // PositWidth - 1
+typedef         5   PositWidthMinus3              ;    // PositWidth - 3
+typedef         3   BitsPerPositWidth             ;    // log2 (PositWidth)
+typedef         3   Iteration                     ;    // log2 (PositWidth-1)
+typedef         4   RegimeWidth                   ;    // log2 (PositWidth) + 1
 
-typedef         2   MaxExpValue                   ;    // 2 ^ ExpWidth
+typedef         1   MaxExpValue                   ;    // 2 ^ ExpWidth
 typedef         0   BitsPerExpWidth               ;    // log2 (ExpWidth)
 
-typedef        12   FracWidth                     ;    // PositWidth-3-ExpWidth
+typedef         5   FracWidth                     ;    // PositWidth-3-ExpWidth
 
-typedef         5   ScaleWidth                    ;    // log2((PositWidth-1)*(2^ExpWidth)-1)
-typedef         6   ScaleWidthPlus1               ;    // ScaleWidth + 1
-typedef        11   FracWidthMinus1               ;    // FracWidth - 1
-typedef         4   ScaleWidthMinusExpWidth       ;    // ScaleWidth - ExpWidth
-typedef         5   ScaleWidthMinusExpWidthPlus1  ;    // ScaleWidth - ExpWidth
+typedef         3   ScaleWidth                    ;    // log2((PositWidth-1)*(2^ExpWidth)-1)
+typedef         4   ScaleWidthPlus1               ;    // ScaleWidth + 1
+typedef         4   FracWidthMinus1               ;    // FracWidth - 1
+typedef         3   ScaleWidthMinusExpWidth       ;    // ScaleWidth - ExpWidth
+typedef         4   ScaleWidthMinusExpWidthPlus1  ;    // ScaleWidth - ExpWidth
 typedef        22   FloatFracWidthMinus1          ;    // (FloatFracWidth-1)
-typedef        11   FloatFracWidthMinusFracWidth  ;    // (FloatFracWidth-FracWidth)
-typedef         5   LogFracWidthPlus1             ;    // log2 (FracWidth) + 1
+typedef        18   FloatFracWidthMinusFracWidth  ;    // (FloatFracWidth-FracWidth)
+typedef         4   LogFracWidthPlus1             ;    // log2 (FracWidth) + 1
 typedef         6   LogFloatFracWidthPlus1        ;    // log2 (FloatFracWidth) + 1
-typedef        48   FracWidthMul4                 ;    // FracWidth * 4
-typedef        49   FracWidthMul4Plus1            ;    // FracWidthMul4 + 1
-typedef         6   LogFracWidthMul4              ;    // log2 (FracWidthMul4)
-typedef         7   LogFracWidthMul4Plus1         ;    // LogFracWidthMul4 + 1
+typedef        20   FracWidthMul4                 ;    // FracWidth * 4
+typedef        21   FracWidthMul4Plus1            ;    // FracWidthMul4 + 1
+typedef         5   LogFracWidthMul4              ;    // log2 (FracWidthMul4)
+typedef         6   LogFracWidthMul4Plus1         ;    // LogFracWidthMul4 + 1
 
 
 /*// ================================================================
