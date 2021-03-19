@@ -110,6 +110,22 @@ def main (argv) :
             , help="""The data types that we are building and simulating (FLOAT, FLOAT_POSIT, POSIT)\n"""
             )
 
+    parser.add_argument(
+              '--vszs'
+            , action="append"
+            , dest='vszs'
+            , default=None
+            , help="""The vector/matrix sizes that we are simulating. If unused means all sizes \n"""
+            )
+
+    parser.add_argument(
+              '--verbosity'
+            , action="store"
+            , dest='verbosity'
+            , default='+v0'
+            , help="""The verbosity flag +v0 (quiet), +v1 (instruction trace), +v2 (pipeline details)\n"""
+            )
+
 
     args = parser.parse_args()
     do_sim = args.sim
@@ -123,15 +139,17 @@ def main (argv) :
     if args.data_types == None : data_types = ['DOUBLE', 'FLOAT', 'FLOAT_POSIT', 'POSIT']
     else : data_types = args.data_types
 
-    vszs  = [32, 64, 128, 256]
+    if args.vszs == None :
+        vszs  = [32, 64, 128, 256]
 
-    if blas_level == 1 :
-        vszs.append (512)
-        vszs.append (1024)
-        vszs.append (2048)
-        vszs.append (4096)
-    elif blas_level == 2 :
-        vszs.append (512)
+        if blas_level == 1 :
+             vszs.append (512)
+             vszs.append (1024)
+             vszs.append (2048)
+             vszs.append (4096)
+        elif blas_level == 2 :
+            vszs.append (512)
+    else : vszs = args.vszs
 
     # The summary dictionary captures information about each configuration being compiled and
     # simulated. Some of the information is acquired statically, while others are from simulation
@@ -364,7 +382,7 @@ def main (argv) :
                     # get the name of the .elf file by applying the renaming recipe
                     test_path = os.path.join (CWD, (cfg_name + '.' + main_prog + '.elf'))
                     example_val = 'EXAMPLE='+test_path
-                    verbosity_val = 'VERBOSITY=+v0'
+                    verbosity_val = 'VERBOSITY='+args.verbosity
 
                     # ------
                     logging.info ("Simulating %s on %s", test_path, hw_dir_name)
