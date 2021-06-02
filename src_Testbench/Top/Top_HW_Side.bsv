@@ -67,7 +67,9 @@ module mkTop_HW_Side (Empty) ;
       // Set CPU verbosity and logdelay (simulation only)
       Bool v1 <- $test$plusargs ("v1");
       Bool v2 <- $test$plusargs ("v2");
-      Bit #(4)  verbosity = ((v2 ? 2 : (v1 ? 1 : 0)));
+      Bool v3 <- $test$plusargs ("v3");
+      Bool v4 <- $test$plusargs ("v4");
+      Bit #(4)  verbosity = (v4 ? 4 : (v3 ? 3 : (v2 ? 2 : (v1 ? 1 : 0))));
       Bit #(64) logdelay  = 0;    // # of instructions after which to set verbosity
       soc_top.set_verbosity  (verbosity, logdelay);
 

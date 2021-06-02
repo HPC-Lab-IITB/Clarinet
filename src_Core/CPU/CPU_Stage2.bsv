@@ -120,7 +120,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
    // Floating point box
 
 `ifdef ISA_F
-   FBox_Top_IFC fbox <- mkFBox_Top (0);
+   FBox_Top_IFC fbox <- mkFBox_Top (verbosity);
 `endif
 
    // ----------------

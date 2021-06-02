@@ -190,7 +190,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
 `endif
 
 `ifdef POSIT
-   PositCore_IFC           positCore      <- mkPositCore (verbosity);
+   PositCore_IFC           positCore      <- mkPositCore (truncate (verbosity));
 `endif
 
    // =============================================================
@@ -1355,6 +1355,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
          $display ("%0d: %m.doFMS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
    endrule
 
+`ifdef INCLUDE_PDIV
    // Execute a posit fused multiply add instruction into quire
    rule doFDA_P ( validReq && isFDA_P );
       positCore.server_core.request.put (
@@ -1372,6 +1373,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
       if (verbosity > 1)
          $display ("%0d: %m.doFDS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
    endrule
+`endif
 
    // Move a posit value from GPR to PPR
    // v1 holds the GPR value
