@@ -16,5 +16,7 @@ PWIDTH ?= PWIDTH_8
 APP_FLAGS = -D$(TYPE)
 APP_FLAGS += -D$(PWIDTH)
 APP_FLAGS += -DVSZ=$(VSZ)
+APP_FLAGS += -D$(USE_FMADD)
+APP_FLAGS += -D$(CACHES)
 
 include ../Makefile

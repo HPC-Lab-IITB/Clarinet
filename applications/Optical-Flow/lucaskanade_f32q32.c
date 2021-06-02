@@ -1,7 +1,7 @@
 #include <stdio.h>	 
 #include <inttypes.h>
 #include "img_rubik.h"
-//#include "img_sphere.h"
+// #include "img_sphere.h"
 #include "clarinet.h"
 #include "riscv_counters.h"
 
@@ -125,7 +125,8 @@ int normalise = 0;
              }
          }
          
-         V[i][0] = (Vpt[0][0]); V[i][1] = (Vpt[0][1]);
+         V[i][0] = (Vpt[0][0]);
+         V[i][1] = (Vpt[0][1]);
     }
 
     else {
@@ -147,8 +148,9 @@ int normalise = 0;
 
     float A[kernelSize*kernelSize][2];
     float B[kernelSize*kernelSize];
-    uint32_t start, end = 0;
-    uint32_t start_calcv, end_calcv = 0;
+    uint32_t end = 0;
+    uint32_t start = 0;
+    uint32_t avg_cycles = 0;
     
     printf ("Processing start. X: %d, Y: %d, image count: %d, length: %d \n", X, Y, fileCount, length);
     for (int fCount=1; fCount<fileCount; fCount++) {
@@ -157,12 +159,12 @@ int normalise = 0;
        // depending on the fCount iteration, use the appropriate images.
        for (int i=0; i<length; i++) {
           if (fCount == 1) {
-             start = read_cycle();
              buildA(I1, POI[i][0][1], POI[i][0][0], kernelSize, A);          
              buildB(I1, I0, POI[i][0][1], POI[i][0][0], kernelSize, B);
-             start_calcv = read_cycle();
+             start = read_cycle();
              calcV(A, B, V, kernelSize, i);			 
              end = read_cycle();
+             avg_cycles += (end - start);
           } else if (fCount == 2) {
              buildA(I2, POI[i][0][1], POI[i][0][0], kernelSize, A);          
              buildB(I2, I1, POI[i][0][1], POI[i][0][0], kernelSize, B);
@@ -174,12 +176,8 @@ int normalise = 0;
           }
        }
     }
-    printf ("Q32 Processing complete. Cycles per frame: %d cycles. Velocity computation: %d cycles.\n"
-          , (end-start), (end - start_calcv));
-    printf ("start: %" PRIu32 " cycles\n", start);
-    printf ("calcV start: %" PRIu32 " cycles\n", start_calcv);
-    printf ("end: %" PRIu32 " cycles\n", end);
-    
+    avg_cycles = avg_cycles/length;
+    printf ("Cycles per iteration: Velocity computation: %d cycles.\n", avg_cycles);
     return 0;
  }
 

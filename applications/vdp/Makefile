@@ -13,8 +13,10 @@ PWIDTH ?= PWIDTH_8
 # --------
 
 # The benchmark being run
-APP_FLAGS = -D$(TYPE)
+APP_FLAGS = -D$(TYPE) 
 APP_FLAGS += -D$(PWIDTH)
 APP_FLAGS += -DVSZ=$(VSZ)
+APP_FLAGS += -D$(USE_FMADD)
+APP_FLAGS += -D$(CACHES)
 
 include ../Makefile

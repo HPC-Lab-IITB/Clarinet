@@ -88,6 +88,7 @@ def main (argv) :
     # The 'seed' data arrays which will be repeated to create the vectors of desired size
     # random float vals from farhad's GBLAS data generator
     seed_vals = {}
+    seed_vals_H = {}
     seed_vals ['f64'] = [ '3.4050474167', '3.1847724915', '7.3107628822', '-5.6170530319', '-4.7297372818', '4.5974335670', '6.0904574394', '-3.0683014393', '4.1741681099', '-3.3324038982', '-7.1214756966', '2.7567198277', '-3.4179165363', '-9.2278394699', '8.9482812881', '-0.3960950971' ]
 
     # random p8 vals from farhad's GBLAS data generator
@@ -100,7 +101,9 @@ def main (argv) :
     seed_vals ['p16'] = [ '0x96ac', '0x9f09', '0x9c02', '0x5937', '0x62b1', '0x6880', '0x9e74', '0xb8ae', '0xb916', '0x51f4', '0x96c3', '0x2262', '0xadce', '0x6676', '0xadcd', '0xdec6' ]
 
     # random p24 vals from farhad's GBLAS data generator
-    seed_vals ['p24'] = [ '0xa6ac1500', '0xaf08ad00', '0xac018400', '0x4c9b9500', '0x52b13500', '0x58803d00', '0xae745400', '0xbc56fb00', '0xbc8b1b00', '0x48fa0500', '0xa6c30000', '0x31314000', '0xb6e6d000', '0x5675aa00', '0xb6e64d00', '0xcf62f600' ]
+    seed_vals ['p24'] = [ '0xac15', '0x08ad', '0x0184', '0x9b95', '0xb135', '0x803d', '0x7454', '0x56fb', '0x8b1b', '0xfa05', '0xc300', '0x3140', '0xe6d0', '0x75aa', '0xe64d', '0x62f6' ]
+
+    seed_vals_H ['p24'] = [ '0xa6', '0xaf', '0xac', '0x4c', '0x52', '0x58', '0xae', '0xbc', '0xbc', '0x48', '0xa6', '0x31', '0xb6', '0x56', '0xb6', '0xcf' ]
 
     # random p32 vals from farhad's GBLAS data generator
     seed_vals ['p32'] = [ '0xa6ac1570', '0xaf08ad60', '0xac0183f0', '0x4c9b9540', '0x52b13500', '0x58803d70', '0xae745430', '0xbc56fb50', '0xbc8b1aa0', '0x48fa0540', '0xa6c2ffa0', '0x31313ff0', '0xb6e6cfe0', '0x5675aa10', '0xb6e64d30', '0xcf62f5a0' ]
@@ -109,6 +112,7 @@ def main (argv) :
     repetition = args.vec_size // 16
 
     operand_decl = 'static '
+    operand_decl_H = 'static '
     if (args.data_type == 'f64') :
         # generate 64-bit FP arrays
         operand_decl = operand_decl + 'double '
@@ -125,7 +129,12 @@ def main (argv) :
         # generate 16-bit posit arrays
         operand_decl = operand_decl + 'unsigned short '
 
-    elif ((args.data_type == 'p24') or (args.data_type == 'p32')):
+    elif (args.data_type == 'p24') :
+        # generate 24-bit
+        operand_decl = operand_decl + 'unsigned short '
+        operand_decl_H = operand_decl_H + 'unsigned char '
+
+    elif (args.data_type == 'p32') :
         # generate 24-bit/32-bit posit arrays
         operand_decl = operand_decl + 'unsigned int '
 
@@ -134,22 +143,43 @@ def main (argv) :
         sys.exit (1)
 
     operand_decl = operand_decl + args.var_name
-    if args.is_matrix : operand_decl = operand_decl + ' [VSZ][VSZ]'
-    else              : operand_decl = operand_decl + ' [VSZ]'
+    operand_decl_H = operand_decl_H + args.var_name + 'H'
+    if args.is_matrix :
+        operand_decl = operand_decl + ' [VSZ][VSZ]'
+        operand_decl_H = operand_decl_H + ' [VSZ][VSZ]'
+    else :
+        operand_decl = operand_decl + ' [VSZ]'
+        operand_decl_H = operand_decl_H + ' [VSZ]'
 
     # construct the contents of the operand array in the declaration
     operand_array = fn_compose_operand_array (repetition, seed_vals, args.data_type)
 
     # for a matrix, compose operand_arrays into operand_val
     if args.is_matrix :
-        if args.is_transpose : operand_val = fn_compose_operand_matrix (args.vec_size, operand_array)
-        else : operand_val = fn_compose_transposed_matrix (args.vec_size, operand_array)
+        if args.is_transpose :
+            operand_val = fn_compose_operand_matrix (args.vec_size, operand_array)
+        else :
+            operand_val = fn_compose_transposed_matrix (args.vec_size, operand_array)
 
     # for a vector use the operand_array as operand_val
     else : operand_val = operand_array
 
+    # If operating on p24 create the high operands as well
+    if (args.data_type == 'p24') :
+        operand_array_H = fn_compose_operand_array (repetition, seed_vals_H, args.data_type)
+
+        if args.is_matrix :
+            if args.is_transpose :
+                operand_val_H = fn_compose_operand_matrix (args.vec_size, operand_array_H)
+            else :
+                operand_val_H = fn_compose_transposed_matrix (args.vec_size, operand_array_H)
+
+        else : operand_val_H = operand_array_H
+
     # write out the declaration into the header file
     outf.write ("%s = %s;\n\n" % (operand_decl, operand_val))
+    if (args.data_type == 'p24') :
+        outf.write ("%s = %s;\n\n" % (operand_decl_H, operand_val_H))
 
     outf.close ()
 

@@ -86,7 +86,8 @@ int normalise = 0;
          for (int col = 0; col < 2; col++) {
             AtA_f[row][col] = 0.0;
             for (int k=0; k<Arows; k++) {
-               AtA_f[row][col] += fn_float_fma (A[k][row], A[k][col], AtA_f[row][col]);
+               // AtA_f[row][col] += fn_float_fma (A[k][row], A[k][col], AtA_f[row][col]);
+               AtA_f[row][col] += (A[k][row] * A[k][col]);
             }	
          }
      }
@@ -96,7 +97,8 @@ int normalise = 0;
          for (int col = 0; col < 1; col++) {
             AtB[row][col] = 0.0;
             for (int k=0; k<Arows; k++) {
-               AtB[row][col] += fn_float_fma (A[k][row],B[k], AtB[row][col]);
+               // AtB[row][col] += fn_float_fma (A[k][row],B[k], AtB[row][col]);
+               AtB[row][col] += (A[k][row] * B[k]);
             }	
          }
      }		 
@@ -118,7 +120,7 @@ int normalise = 0;
              for (int col = 0; col < 1; col++) {
                 Vpt[row][col] = 0.0; 
                  for (int k=0; k<2; k++) {
-                     Vpt[row][col] += fn_float_fma (AtAInv[row][k],AtB[k][col], Vpt[row][col]);
+                     Vpt[row][col] += (AtAInv[row][k] * AtB[k][col]);
              	}	
              }
          }
@@ -146,8 +148,9 @@ int normalise = 0;
 
     float A[kernelSize*kernelSize][2];
     float B[kernelSize*kernelSize];
-    uint32_t start, end = 0;
-    uint32_t start_calcv = 0;
+    uint32_t end = 0;
+    uint32_t start = 0;
+    uint32_t avg_cycles = 0;
     
     printf ("Processing start. X: %d, Y: %d, image count: %d, length: %d \n", X, Y, fileCount, length);
     for (int fCount=1; fCount<fileCount; fCount++) {
@@ -156,12 +159,12 @@ int normalise = 0;
        // depending on the fCount iteration, use the appropriate images.
        for (int i=0; i<length; i++) {
           if (fCount == 1) {
-             start=read_cycle();
              buildA(I1, POI[i][0][1], POI[i][0][0], kernelSize, A);          
              buildB(I1, I0, POI[i][0][1], POI[i][0][0], kernelSize, B);
-             start_calcv = read_cycle();
+             start = read_cycle();
              calcV(A, B, V, kernelSize, i);			 
-             end=read_cycle();
+             end = read_cycle();
+             avg_cycles += (end - start);
           } else if (fCount == 2) {
              buildA(I2, POI[i][0][1], POI[i][0][0], kernelSize, A);          
              buildB(I2, I1, POI[i][0][1], POI[i][0][0], kernelSize, B);
@@ -173,12 +176,8 @@ int normalise = 0;
           }
        }
     }
-    printf ("F32 Processing complete. Cycles per frame: %d cycles. Velocity computation: %d cycles.\n"
-          , (end-start), (end - start_calcv));
-    printf ("start: %" PRIu32 " cycles\n", start);
-    printf ("calcV start: %" PRIu32 " cycles\n", start_calcv);
-    printf ("end: %" PRIu32 " cycles\n", end);
-    
+    avg_cycles = avg_cycles/length;
+    printf ("Cycles per iteration: Velocity computation: %d cycles.\n", avg_cycles);
     return 0;
  }
 

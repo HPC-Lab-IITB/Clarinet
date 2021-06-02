@@ -60,7 +60,18 @@ double fn_double_sqrt (double a);
 #endif
 
 // --------
+#ifdef PWIDTH_8
+void fn_init_p_quire (unsigned char initVal);
+#endif
+#ifdef PWIDTH_16
+void fn_init_p_quire (unsigned short initVal);
+#endif
+#ifdef PWIDTH_24
 void fn_init_p_quire (unsigned int initVal);
+#endif
+#ifdef PWIDTH_32
+void fn_init_p_quire (unsigned int initVal);
+#endif
 void fn_init_quire (float initVal);
 
 
@@ -108,17 +119,17 @@ unsigned char fn_posit_p_vdp (int r, unsigned char a[], unsigned char b[]);
 unsigned short fn_posit_p_vdp (int r, unsigned short a[], unsigned short b[]);
 #endif
 #ifdef PWIDTH_24
-unsigned int fn_posit_p_vdp (int r, unsigned int a[], unsigned int b[]);
+unsigned int fn_posit_p_vdp (int r, unsigned char ah[], unsigned short al[], unsigned char bh[], unsigned short bl[]);
 #endif
 #ifdef PWIDTH_32
 unsigned int fn_posit_p_vdp (int r, unsigned int a[], unsigned int b[]);
 #endif
 #endif
 float fn_posit_vdp (int r, float a[], float b[]);
-float fn_float_vdp (int r, float a[], float b[]);
-float fn_float_optimized_vdp (int r, float a[], float b[]);
 #ifdef DOUBLE
 double fn_double_vdp (int r, double a[], double b[]);
+#else
+float fn_float_vdp (int r, float a[], float b[]);
 #endif
 
 
@@ -131,17 +142,17 @@ void fn_posit_p_gemv          (unsigned char  v_acc[], int r, unsigned char  a[]
 void  fn_posit_p_gemv         (unsigned short v_acc[], int r, unsigned short a[][VSZ], unsigned short b[]);
 #endif
 #ifdef PWIDTH_24
-void n_posit_p_gemv           (unsigned int   v_acc[], int r, unsigned int   a[][VSZ], unsigned int b[]);
+void n_posit_p_gemv           (unsigned int   v_acc[], int r, unsigned char  aH[][VSZ], unsigned short a[][VSZ], unsigned char bH[], unsigned int b[]);
 #endif
 #ifdef PWIDTH_32
 void n_posit_p_gemv           (unsigned int   v_acc[], int r, unsigned int   a[][VSZ], unsigned int b[]);
 #endif
 #endif
 void fn_posit_gemv            (float v_acc[], int r, float a[][VSZ], float b[]);
-void fn_float_gemv            (float v_acc[], int r, float a[][VSZ], float b[]);
-void fn_float_optimized_gemv  (float v_acc[], int r, float a[][VSZ], float b[]);
 #ifdef DOUBLE
 void fn_double_gemv           (double v_acc[], int r, double a[][VSZ], double b[]);
+#else
+void fn_float_gemv            (float v_acc[], int r, float a[][VSZ], float b[]);
 #endif
 
 
@@ -154,17 +165,17 @@ void fn_posit_p_gemm          (unsigned char  m_acc[][VSZ], int r, unsigned char
 void  fn_posit_p_gemm         (unsigned short m_acc[][VSZ], int r, unsigned short a[][VSZ], unsigned short b[][VSZ]);
 #endif
 #ifdef PWIDTH_24
-void n_posit_p_gemm           (unsigned int   m_acc[][VSZ], int r, unsigned int   a[][VSZ], unsigned int   b[][VSZ]);
+void fn_posit_p_gemm          (unsigned int   m_acc[][VSZ], int r, unsigned char  aH[][VSZ], unsigned short a[][VSZ], unsigned char  bH[][VSZ], unsigned short b[][VSZ]);
 #endif
 #ifdef PWIDTH_32
-void n_posit_p_gemm           (unsigned int   m_acc[][VSZ], int r, unsigned int   a[][VSZ], unsigned int   b[][VSZ]);
+void fn_posit_p_gemm          (unsigned int   m_acc[][VSZ], int r, unsigned int   a[][VSZ], unsigned int   b[][VSZ]);
 #endif
 #endif
 void fn_posit_gemm            (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
-void fn_float_gemm            (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
-void fn_float_optimized_gemm  (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
 #ifdef DOUBLE
 void fn_double_gemm           (double  m_acc[][VSZ], int r, double   a[][VSZ], double  b[][VSZ]);
+#else
+void fn_float_gemm            (float   m_acc[][VSZ], int r, float    a[][VSZ], float   b[][VSZ]);
 #endif
 
 
@@ -175,9 +186,6 @@ void fn_posit_p_givens        (int dim, unsigned char  mat[][VSZ], int r, int c)
 #endif
 #ifdef PWIDTH_16
 void fn_posit_p_givens        (int dim, unsigned short mat[][VSZ], int r, int c);
-#endif
-#ifdef PWIDTH_24
-void fn_posit_p_givens        (int dim, unsigned int   mat[][VSZ], int r, int c);
 #endif
 #ifdef PWIDTH_32
 void fn_posit_p_givens        (int dim, unsigned int   mat[][VSZ], int r, int c);

@@ -32,6 +32,7 @@ CFLAGS += -DCLOCK_MHZ=$(CLOCK_MHZ)
 CFLAGS += -mcmodel=$(CMODEL)
 CFLAGS += -I../lib
 CFLAGS += -lm
+CFLAGS += -O3
 
 # needed for riscv_counters.c
 CFLAGS += -DRV$(XLEN)

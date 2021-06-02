@@ -58,7 +58,7 @@ def fn_createLogger (debug, thisScript, main_prog):
 """ Renames compile output depending on type, pw and rep """
 
 def fn_gen_cfg_name (data_type, operand_type, pw, vsz) :
-    if   data_type == 'FLOAT' : prefix = operand_type + '.' + str(vsz)
+    if   data_type == 'FLOAT' or data_type == 'DOUBLE' : prefix = operand_type + '.' + str(vsz)
     elif data_type == 'POSIT' : prefix = operand_type + '.' + str(vsz)
     else                      : prefix = operand_type + '-' + 'p' + str(pw) + '.' + str(vsz) 
 
@@ -107,7 +107,7 @@ def main (argv) :
             , action="append"
             , dest='data_types'
             , default=None
-            , help="""The data types that we are building and simulating (FLOAT, FLOAT_POSIT, POSIT)\n"""
+            , help="""The data types that we are building and simulating (FLOAT, FLOAT_POSIT, POSIT, DOUBLE)\n"""
             )
 
     parser.add_argument(
@@ -119,11 +119,33 @@ def main (argv) :
             )
 
     parser.add_argument(
+              '--pwidths'
+            , action="append"
+            , dest='pwidths'
+            , default=None
+            , help="""The posit type widths that we are simulating. If unused means all widths \n"""
+            )
+
+    parser.add_argument(
               '--verbosity'
             , action="store"
             , dest='verbosity'
             , default='+v0'
             , help="""The verbosity flag +v0 (quiet), +v1 (instruction trace), +v2 (pipeline details)\n"""
+            )
+
+    parser.add_argument(
+              '--use-fmadd'
+            , action='store_true'
+            , dest='use_fmadd'
+            , help="""Use fmadd.s for float vdp and fmadd.d for double vdp \n"""
+            )
+
+    parser.add_argument(
+              '--warm-caches'
+            , action='store_true'
+            , dest='warm_caches'
+            , help="""Warm up caches before running the actual benchmark \n"""
             )
 
 
@@ -136,9 +158,13 @@ def main (argv) :
     reportFName = fn_createLogger (True, 'batch-compile', main_prog) 
 
     # What data types do we work with?
-    if args.data_types == None : data_types = ['DOUBLE', 'FLOAT', 'FLOAT_POSIT', 'POSIT']
+    # Commenting out DOUBLE because it is trapping inexplicably on fsd
+    # if args.data_types == None : data_types = ['DOUBLE', 'FLOAT', 'FLOAT_POSIT', 'POSIT']
+    if args.data_types == None : data_types = ['FLOAT', 'FLOAT_POSIT', 'POSIT']
     else : data_types = args.data_types
 
+    # How much data do we work with?
+    vszs = []
     if args.vszs == None :
         vszs  = [32, 64, 128, 256]
 
@@ -149,7 +175,15 @@ def main (argv) :
              vszs.append (4096)
         elif blas_level == 2 :
             vszs.append (512)
-    else : vszs = args.vszs
+    else :
+        for val in args.vszs : vszs.append (int (val))
+
+    # What posit widths (if any) do we work with?
+    pws = []
+    if args.pwidths == None :
+        pws = [8, 16, 24, 32]
+    else :
+        for val in args.pwidths : pws.append (int (val))
 
     # The summary dictionary captures information about each configuration being compiled and
     # simulated. Some of the information is acquired statically, while others are from simulation
@@ -171,13 +205,18 @@ def main (argv) :
             if data_type == 'DOUBLE' : arch_val = 'ARCH=rv32gc'
             else                     : arch_val = 'ARCH=rv32imafc'
 
-            # set pwidth based on data type
+            # override pwidth based on data type
             if (data_type == 'FLOAT') or (data_type == 'DOUBLE') : pwidths = [8]
-            else : pwidths = [8, 16, 24, 32]
+            else : pwidths = pws
 
             # for data-generator: set operarand data type (only for floats)
             if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) : operand_type = 'f32'
             elif (data_type == 'DOUBLE')                                : operand_type = 'f64'
+
+            if (args.use_fmadd) : fmadd_val = 'USE_FMADD=FMADD_ENABLED'
+            else                : fmadd_val = 'USE_FMADD=FMADD_DISABLED'
+            if (args.warm_caches) : cache_val = 'CACHES=WARM_CACHES'
+            else                : cache_val = 'CACHES=COLD_CACHES'
 
             for pw in pwidths :
                 pw_val = 'PWIDTH=PWIDTH_'+str(pw)
@@ -218,46 +257,23 @@ def main (argv) :
                         else                     : is_transpose_string = '--no-transpose'
 
                         data_generator = os.path.join (CWD, '..', 'gen_data')
+                        data_h_file = "data_"+main_prog+".h"
 
-                        logging.debug ("%s --vsz %d --type %s --var %s %s %s --out data.h"
-                                , data_generator, vsz, operand_type, variable['name']
-                                , is_matrix_string, is_transpose_string)
+                        logging.info ("Generating %s %s data '%s'", operand_type, is_matrix_string, variable['name'])
+                        data_gen_args = [data_generator, '--vsz', str (vsz), '--type', operand_type, '--var', variable['name'], is_matrix_string, is_transpose_string, '--out', data_h_file]
+                        logging.debug ("%s", (' '.join (data_gen_args)))
 
-                        data_gen_id = subprocess.Popen (
-                                      [     data_generator
-                                          , '--vsz'
-                                          , str (vsz)
-                                          , '--type'
-                                          , operand_type
-                                          , '--var'
-                                          , variable['name']
-                                          , is_matrix_string
-                                          , is_transpose_string
-                                          , '--out'
-                                          , 'data.h'
-                                      ]
-                                    , stderr=subprocess.STDOUT
-                                    , cwd=os.path.join (CWD, '..', 'lib'))
+                        data_gen_id = subprocess.Popen (data_gen_args, stderr=subprocess.STDOUT, cwd=os.path.join (CWD, '..', 'lib'))
                         data_gen_id.wait()
 
-                    logging.info ("make %s %s %s %s %s all", main_val, data_type_val, pw_val, vsz_val, arch_val)
-                    makeID = subprocess.Popen (
-                                    [     "/usr/bin/make"
-                                        , main_val
-                                        , data_type_val
-                                        , pw_val
-                                        , vsz_val
-                                        , arch_val
-                                        , 'all'
-                                    ]
-                                , stdout=makeLog
-                                , stderr=subprocess.STDOUT
-                                , cwd=CWD)
+                    make_args = ["/usr/bin/make", main_val, data_type_val, pw_val, vsz_val, arch_val, fmadd_val, cache_val, 'all']
+                    logging.info ("%s", (' '.join (make_args)))
+
+                    makeID = subprocess.Popen (make_args, stdout=makeLog, stderr=subprocess.STDOUT, cwd=CWD)
                     makeID.wait()
 
                     if makeID.returncode == 0 :
                         logging.info ("%s build: Success", main_prog)
-
 
                         # Name the executable and dump as per configuration
                         for f in compile_files_to_move :
@@ -293,7 +309,7 @@ def main (argv) :
                                     , stderr=subprocess.STDOUT
                                     , cwd=CWD)
                         makeID.wait()
-                        os.remove (os.path.join (CWD, '..', 'lib', 'data.h'))
+                        os.remove (os.path.join (CWD, '..', 'lib', data_h_file))
 
                     else :
                         logging.error ("%s build: Failure", main_prog)
@@ -310,7 +326,7 @@ def main (argv) :
                                     , stderr=subprocess.STDOUT
                                     , cwd=CWD)
                         makeID.wait()
-                        os.remove (os.path.join (CWD, '..', 'lib', 'data.h'))
+                        os.remove (os.path.join (CWD, '..', 'lib', data_h_file))
 
         makeLog.close ()
 
@@ -337,8 +353,9 @@ def main (argv) :
         for data_type in data_types :
             data_type_val = 'TYPE='+data_type
 
+            # override pwidth based on data type
             if (data_type == 'FLOAT') or (data_type == 'DOUBLE') : pwidths = [8]
-            else                                                 : pwidths = [8, 16, 24, 32]
+            else : pwidths = pws
 
             # for data-generator: set operarand data type (only for floats)
             if ((data_type == 'FLOAT') or (data_type == 'FLOAT_POSIT')) : operand_type = 'f32'
