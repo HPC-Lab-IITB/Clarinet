@@ -8,8 +8,9 @@ import datetime
 import argparse
 
 """
-Compiles all the different variants of the VDP program, and then runs each of them in simulations.
-Ensure that you the RV tools in your path, and the verilator simulator executables are already created.
+Compiles all the different variants of the application program, and then runs each
+of them in simulations.  Ensure that you the RV tools in your path, and the
+verilator simulator executables are already created.
 """
 
 CWD = os.getcwd ()
@@ -256,7 +257,7 @@ def main (argv) :
                         if variable['transpose'] : is_transpose_string = '--transpose'
                         else                     : is_transpose_string = '--no-transpose'
 
-                        data_generator = os.path.join (CWD, '..', 'gen_data')
+                        data_generator = os.path.join (CWD, '..', 'tools', 'gen_data')
                         data_h_file = "data_"+main_prog+".h"
 
                         logging.info ("Generating %s %s data '%s'", operand_type, is_matrix_string, variable['name'])

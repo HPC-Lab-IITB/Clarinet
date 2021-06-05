@@ -1,0 +1,257 @@
+#!/usr/bin/python3
+import os
+import sys
+import shutil
+import subprocess
+import logging
+import datetime
+import argparse
+import re
+
+
+CWD = os.getcwd ()
+debug = False
+
+#------------------------
+"""
+Create a logger, and the report file name
+"""
+def fn_createLogger (debug, thisScript, rpt_from_args):
+    # Create a journal file to log all activity from this run
+    now = datetime.datetime.now ()
+    journalFName = thisScript + '-' + now.strftime("%Y%m%d_%H%M%f") + ".jou"
+    if rpt_from_args == None :
+        reportFName = thisScript + '-' + now.strftime("%Y%m%d_%H%M%f") + ".rpt"
+    else : reportFName = rpt_from_args
+
+    journalPath  = os.path.join (CWD, journalFName)
+    if debug == True :
+        logging.basicConfig (
+                  filename=journalPath
+                , filemode='w'
+                , level=logging.DEBUG
+                , format='[%(asctime)s][%(levelname)5s] %(message)s'
+                , datefmt='%H:%M:%S')
+    else :
+        logging.basicConfig (
+                  filename=journalPath
+                , filemode='w'
+                , level=logging.INFO
+                , format='[%(asctime)s][%(levelname)5s] %(message)s'
+                , datefmt='%H:%M:%S')
+
+    # Define a Handler which writes INFO messages or higher to the sys.stderr
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+
+    # set a format for console logs (simplified - no time-stamp)
+    formatter = logging.Formatter('[%(levelname)5s]: %(message)s')
+
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+
+    # Add the handler to the root logger
+    logging.getLogger('').addHandler(console)
+    return reportFName
+
+
+#------------------------
+"""
+Create a dictionary mapping each instruction of interest to a list of PCs
+"""
+def fn_create_instr_pc_dir (instructions, objdump) :
+    try : dumpF = open (objdump, 'r')
+    except : 
+        logging.error ("Unable to open disassembly file '%s' for reading", objdump)
+        sys.exit (1)
+
+    # initialize the dictionary
+    instr_pc_d = {}
+    for instr in instructions : instr_pc_d[instr] = []
+
+    for disass in dumpF :
+        for instr in instructions :
+            instr_in_line = re.search ((r'\b'+instr+r'\b'), disass)
+            if instr_in_line != None :  # instr is in this line of disassembly
+                pc = disass.split(':')[0]   # extract the PC
+                instr_pc_d[instr].append (pc)
+                break
+
+    dumpF.close ()
+
+    # for debugging
+    for instr in instructions :
+        first_pc = True
+        pcs = ''
+        for pc in instr_pc_d[instr] :
+            if first_pc : 
+                pcs = pc
+                first_pc = False
+            else : pcs = pcs + ', ' + pc
+        logging.debug ("%s : [ %s ]", instr, pcs)
+    return instr_pc_d
+
+
+#------------------------
+"""
+Create a dictionary mapping each instruction of interest to a list of PCs
+"""
+def fn_analyze_trace (trace_file, instr, pcs, start, end) :
+    try : traceF = open (trace_file, 'r')
+    except : 
+        logging.error ("Unable to open trace file '%s' for reading", trace_file)
+        sys.exit (1)
+
+    last_pc_retirement = 0;
+    total_cycles = 0;
+    times = 0;
+    start_pc = 'PC:0x'+start
+    end_pc = 'PC:0x'+end
+
+    for pc in pcs :
+        pc_string = 'PC:0x'+pc
+        analysis_zone = False
+        for trace in traceF :
+            if 'instret' in trace :     # only look at lines with retiring instructions
+                if analysis_zone :
+                    if end_pc in trace : analysis_zone = False
+
+                    # extract instr retire cycle number for this pc
+                    if debug : logging.debug ("%s", trace)
+                    this_retirement_cycle = (int)(((trace.split(': ')[0]).split('(')[1]).rstrip(')'))
+                    if pc_string in trace :
+                        # Add cycles elapsed since last retirement to the cycle count for this PC
+                        total_cycles = total_cycles + (this_retirement_cycle - last_retirement_cycle)
+                        times = times + 1
+                    else :
+                        # Update last retirement cycle
+                        last_retirement_cycle = this_retirement_cycle
+                else :
+                    if start_pc in trace : analysis_zone = True
+
+        traceF.seek (0)
+
+    traceF.close ()
+
+    return (total_cycles, times)
+
+#------------------------
+def main (argv) :
+    # Command-line parsing
+    parser = argparse.ArgumentParser (
+              formatter_class=argparse.RawDescriptionHelpFormatter
+            , description="Automates running app sims")
+
+    parser.add_argument(
+              '--main'
+            , action="store"
+            , dest='main'
+            , required=True
+            , help="""The objdump of the main program that we are analysing\n"""
+            )
+
+    parser.add_argument(
+              '--trace'
+            , action="store"
+            , dest='trace'
+            , required=True
+            , help="""The trace file from the simultion to analyze\n"""
+            )
+
+    parser.add_argument(
+              '--instr'
+            , action="store"
+            , dest='instrns'
+            , required=True
+            , help="""The instructions to be analysed\n"""
+            )
+
+    parser.add_argument(
+              '--from-pc'
+            , action="store"
+            , dest='start_pc'
+            , required=True
+            , help="""The starting PC from where to start trace analysis\n"""
+            )
+
+    parser.add_argument(
+              '--to-pc'
+            , action="store"
+            , dest='end_pc'
+            , required=True
+            , help="""The ending PC for trace analysis\n"""
+            )
+
+    parser.add_argument(
+              '--rpt'
+            , action="store"
+            , dest='rpt'
+            , default=None
+            , help="""Output report filename. Default instr-cycle-analyzer-YYYYMMDD_hhmm.rpt\n"""
+            )
+
+    args = parser.parse_args()
+    main_prog = args.main
+    trace_file = args.trace
+    start_pc = args.start_pc
+    end_pc = args.end_pc
+
+    # Create report file and logger
+    reportFName = fn_createLogger (True, 'instr-cycle-analyzer', args.rpt) 
+    try : rptf = open (reportFName, 'w')
+    except : 
+        logging.error ("Unable to open '%s' for writing", reportFName)
+        sys.exit (1)
+
+    # open file containing list of instructions to be traced and add it to the trace list
+    instructions = []
+    try : instrf = open (args.instrns, 'r')
+    except :
+        logging.error ("Could not open '%s' for reading", args.instrns)
+        sys.exit (1)
+
+    for instr in instrf : 
+        instr = instr.strip ()
+        instructions.append (instr)
+
+    instrf.close ()
+
+    # Create a dictionary mapping each instruction of interest to a list of PCs
+    logging.info ("Mapping PCs to instructions...")
+    instr_pc_d = fn_create_instr_pc_dir (instructions, main_prog)
+
+    # Initialize counters for each instruction
+    instr_counters_d = {}
+    for instr in instructions :
+        instr_counters_d[instr] = (0, 0)
+
+    for instr in instructions :
+        logging.info ("Analyzing trace for instuction: '%s'", instr)
+        instr_counters_d[instr] = fn_analyze_trace (trace_file, instr, instr_pc_d[instr], start_pc, end_pc)
+
+    logging.info ("Analysis complete. Generating report.")
+
+    rptf.write ('Trace: %s\n\n' % trace_file)
+    titles = ['Instruction', 'Cycles', 'Count']
+    line = '|'
+    for title in titles : line = line + title.ljust(12) + '|'
+    line = line + '\n'
+    rptf.write (line)
+    rptf.write ('-' * len(line))
+    rptf.write ('\n')
+
+    for instr in instructions :
+        (cycles, count) = instr_counters_d[instr]
+        line = '|'
+        line = line + instr.ljust(12) + '|' + str(cycles).rjust(12) + '|' + str(count).rjust(12) + '|'
+        rptf.write (line)
+        rptf.write ('\n')
+    rptf.close ()
+
+    return 0
+
+# ================================================================
+# For non-interactive invocations, call main() and use its return value
+# as the exit code.
+if __name__ == '__main__':
+  sys.exit (main (sys.argv))
