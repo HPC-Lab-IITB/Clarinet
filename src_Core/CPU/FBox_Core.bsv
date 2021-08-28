@@ -88,6 +88,14 @@ endinterface
 Bit #(32) canonicalNaN32 = 32'h7fc00000;
 Bit #(64) canonicalNaN64 = 64'h7ff8000000000000;
 
+FloatingPoint::Exception no_excep = FloatingPoint::Exception {
+     invalid_op   : False
+   , divide_0     : False
+   , overflow     : False
+   , underflow    : False
+   , inexact      : False
+};
+
 // Convert the rounding mode into the format understood by the FPU/PNU
 function RoundMode fv_getRoundMode (Bit #(3) rm);
    case (rm)
@@ -339,6 +347,18 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    WordPL pV1, pV2;
    pV1 = pv1;
    pV2 = pv2;
+
+   // For operations which only update the quire, generate a dummy
+   // response to have the pipeline moving along
+   function Action fa_dummy_response;
+      return (action
+         Bit #(64) res = fv_nanbox (0);
+         let fcsr = exception_to_fcsr (no_excep);
+         fa_driveResponse (res, fcsr);
+         resultR <= tagged Valid (tuple2 (res, fcsr));
+         stateR  <= FBOX_RSP;
+      endaction);
+   endfunction
 `endif
 
    let rmd = fv_getRoundMode (rm);
@@ -1325,7 +1345,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
          $display ("%0d: %m.doFCVT_R_P ", cur_cycle);
       positCore.server_core.request.put (
          tuple4 (tagged P pV1, ?, ?, FCVT_R_P));
-      stateR <= FBOX_PBUSY;
+      fa_dummy_response;
    endrule
 
    // Execute a quire to posit conversion instruction
@@ -1341,7 +1361,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFMA_P ( validReq && isFMA_P );
       positCore.server_core.request.put (
          tuple4 (tagged P pV1, tagged P pV2, ?, FMA_P));
-      stateR <= FBOX_PBUSY;
+      fa_dummy_response;
       if (verbosity > 1)
          $display ("%0d: %m.doFMA_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
    endrule
@@ -1350,7 +1370,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFMS_P ( validReq && isFMS_P );
       positCore.server_core.request.put (
          tuple4 (tagged P pV1, tagged P pV2, ?, FMS_P));
-      stateR <= FBOX_PBUSY;
+      fa_dummy_response;
       if (verbosity > 1)
          $display ("%0d: %m.doFMS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
    endrule
@@ -1360,7 +1380,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFDA_P ( validReq && isFDA_P );
       positCore.server_core.request.put (
          tuple4 (tagged P pV1, tagged P pV2, ?, FDA_P));
-      stateR <= FBOX_PBUSY;
+      fa_dummy_response;
       if (verbosity > 1)
          $display ("%0d: %m.doFDA_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
    endrule
@@ -1369,7 +1389,7 @@ module mkFBox_Core #(Bit #(4) verbosity) (FBox_Core_IFC);
    rule doFDS_P ( validReq && isFDS_P );
       positCore.server_core.request.put (
          tuple4 (tagged P pV1, tagged P pV2, ?, FDS_P));
-      stateR <= FBOX_PBUSY;
+      fa_dummy_response;
       if (verbosity > 1)
          $display ("%0d: %m.doFDS_P (0x%08x, 0x%08x)", cur_cycle, pV1, pV2);
    endrule
