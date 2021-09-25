@@ -47,10 +47,9 @@ import ISA_Decls     :: *;
 
 import TV_Info       :: *;
 
-import CPU_Globals      :: *;
-import Near_Mem_IFC     :: *;
-import MMU_Cache_Common :: *;    // for CacheOp
-import CSR_RegFile      :: *;    // For SATP, SSTATUS, MSTATUS
+import CPU_Globals   :: *;
+import Near_Mem_IFC  :: *;
+import CSR_RegFile   :: *;    // For SATP, SSTATUS, MSTATUS
 
 `ifdef SHIFT_SERIAL
 import Shifter_Box  :: *;
@@ -63,6 +62,20 @@ import RISCV_MBox  :: *;
 `ifdef ISA_F
 import FBox_Top    :: *;
 import FBox_Core   :: *;   // For fv_nanbox function
+`endif
+
+
+//**************************************************
+
+`ifdef ROCC                       //if accelerator is set
+import ROCCAccel				       :: *;
+`endif
+
+//**************************************************
+
+
+`ifdef ACCEL               //Stage 2 dispatches to PositAccel
+import PositAccel      :: *;
 `endif
 
 // ================================================================
@@ -120,10 +133,27 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
    // Floating point box
 
 `ifdef ISA_F
-   FBox_Top_IFC fbox <- mkFBox_Top (verbosity);
+   FBox_Top_IFC fbox <- mkFBox_Top (0);
 `endif
 
+//**************************************************
+
+`ifdef ROCC                    //instantiate the wrapperF for ROCCAccel
+   WrapperF_IFC fwrap <- mkROCCAccel ; 
+`endif
+
+//**************************************************
+
+
+
+  // ----------------
+   // PositAccel Wrapper
+
+`ifdef ACCEL//instantiate the wrapper PositAccel
+   Wrapper_IFC wrap <- mkPositAccel ; 
+`endif
    // ----------------
+
 
    let bypass_base = Bypass {bypass_state: BYPASS_RD_NONE,
 			     rd:           rg_stage2.rd,
@@ -131,12 +161,10 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 			     };
 
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    let fbypass_base = FBypass {bypass_state: BYPASS_RD_NONE,
 			       rd:           rg_stage2.rd,
 			       rd_val:       rg_stage2.fval1
 			       };
-`endif
 
 // Bypass logic for the posit RF
 `ifdef POSIT
@@ -146,6 +174,24 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 			       };
 
 `endif
+`endif
+
+//**************************************************
+
+`ifdef ROCC                   //Bypass Logic for ROCCAccel
+   let roccbypass_base = RoccBypass {bypass_state: BYPASS_RD_NONE,
+			       rd:           rg_stage2.rd,
+			       rd_val:       rg_stage2.roccval1
+			       };
+`endif
+
+//**************************************************
+
+`ifdef ACCEL               //Bypass Logic for ACCEL i.e PositAccel
+   let accelbypass_base = AccelBypass {bypass_state: BYPASS_RD_NONE,
+			       rd:           rg_stage2.rd,
+			       rd_val:       rg_stage2.accelval1
+			       };
 `endif
 
    let data_to_stage3_base = Data_Stage2_to_Stage3 {
@@ -167,6 +213,22 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
       , rd:        rg_stage2.rd
       , rd_val:    rg_stage2.val1
 
+//**************************************************
+
+`ifdef ACCEL               //changes maybe required 
+      , no_rd_upd: False
+      , rd_in_fpr: False
+      , prd_val  : rg_stage2.roccval1
+
+//**************************************************
+
+
+`ifdef ACCEL               //changes maybe required 
+      , no_rd_upd: False
+      , rd_in_ppr: False
+      , prd_val  : rg_stage2.accelval1
+
+`endif
 `ifdef INCLUDE_TANDEM_VERIF
       , trace_data: rg_stage2.trace_data
 `endif
@@ -202,8 +264,23 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
       let res <- fbox.server_reset.response.get;
 `endif
 
+//**************************************************
+
+`ifdef ROCC
+       let rocc_resp <-fwrap.server_reset.response.get;    //server response when ROCCAccel is set
+`endif
+
+//**************************************************
+
+`ifdef ACCEL
+       let accel_resp <-wrap.server_reset.response.get;    //server response when PositAccel is set
+`endif
+
       f_reset_rsps.enq (?);
    endrule
+
+
+ 
 
    // ----------------
    // Combinational output function
@@ -218,13 +295,26 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : ?,
 					bypass          : no_bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
-`endif
+
 `ifdef POSIT
                                       , pbypass         : no_pbypass
+
 `endif
 `endif
+
+//**************************************************
+
+`ifdef ROCC
+                                      , roccbypass         : no_roccbypass
+`endif
+
+//**************************************************
+
+`ifdef ACCEL
+                                      , accelbypass         : no_accelbypass
+`endif
+
 `ifdef INCLUDE_TANDEM_VERIF
 	                              , trace_data      : ?
 `endif
@@ -244,13 +334,26 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
-`endif
+
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
 `endif
+
+//**************************************************
+
+`ifdef ROCC
+                                      , roccbypass         : no_roccbypass
+`endif
+
+//**************************************************
+
+
+`ifdef ACCEL
+                                      , accelbypass         : no_accelbypass
+`endif
+
 					};
       end
 
@@ -305,16 +408,54 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
             // GPR loads
 	    data_to_stage3.rd_val   = result;
 
+//**************************************************
+
+	    `ifdef ROCC      //need to change
+            // A FPR load
+             if (rg_stage2.rd_in_fpr) begin
+               // Only PLW is a legal instruction
+               //It needs to be checked
+               data_to_stage3.prd_val = truncate (dcache.word64);
+            end
+            data_to_stage3.rd_in_fpr = rg_stage2.rd_in_fpr;
+`endif
+
+//**************************************************
+
+`ifdef ACCEL       //need to change
+            // A PPR load
+             if (rg_stage2.rd_in_ppr) begin
+               // Only PLW is a legal instruction
+               //It needs to be checked
+               data_to_stage3.prd_val = truncate (dcache.word64);
+            end
+            data_to_stage3.rd_in_ppr = rg_stage2.rd_in_ppr;
+`endif
+
+
             // Update the bypass channel, if not trapping (NONPIPE)
 	    let bypass = bypass_base;
 `ifdef ISA_F
-`ifndef ONLY_POSITS
 	    let fbypass = fbypass_base;
-`endif
 `ifdef POSIT
 	    let pbypass = pbypass_base;
 `endif
 `endif
+
+//**************************************************
+
+`ifdef ROCC
+	    let roccbypass = roccbypass_base;
+`endif
+
+//**************************************************
+
+
+`ifdef ACCEL
+	    let accelbypass = accelbypass_base;
+`endif
+
+
 
 	    if (ostatus != OSTATUS_NONPIPE) begin
 `ifdef ISA_F
@@ -327,11 +468,9 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 		  // fbypass.bypass_state = ((ostatus == OSTATUS_PIPE) ? BYPASS_RD_RDVAL : BYPASS_RD);
 		  // fbypass.rd_val       = data_to_stage3.frd_val;
 
-`ifndef ONLY_POSITS
 		  // Option 2: shorter critical path, since the data is not bypassed into previous stage,
 		  // (the bypassing is effectively delayed until the next stage).
 		  fbypass.bypass_state = BYPASS_RD;
-`endif
                end
 `ifdef POSIT
                // Bypassing PPR value.
@@ -350,6 +489,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `endif
 `endif
 
+
                // Bypassing GPR values
                if (rg_stage2.rd != 0) begin    // TODO: is this test necessary?
 		  // Choose one of the following two options
@@ -364,6 +504,44 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 		  bypass.bypass_state = BYPASS_RD;
 	       end
 	    end
+
+//**************************************************
+
+	 `ifdef ROCC
+               // Bypassing FPR value.
+               else if (rg_stage2.rd_in_fpr) begin
+		  // Choose one of the following two options
+
+		  // Option 1: longer critical path, since the data is bypassed back into previous stage.
+		  // We use data_to_stage3.rd_val since nanboxing has been done.
+		  // fbypass.bypass_state = ((ostatus == OSTATUS_PIPE) ? BYPASS_RD_RDVAL : BYPASS_RD);
+		  // fbypass.rd_val       = data_to_stage3.prd_val;
+
+		  // Option 2: shorter critical path, since the data is not bypassed into previous stage,
+		  // (the bypassing is effectively delayed until the next stage).
+		  roccbypass.bypass_state = BYPASS_RD;
+               end
+`endif
+
+//**************************************************
+
+
+`ifdef ACCEL
+               // Bypassing PPR value.
+               else if (rg_stage2.rd_in_ppr) begin
+		  // Choose one of the following two options
+
+		  // Option 1: longer critical path, since the data is bypassed back into previous stage.
+		  // We use data_to_stage3.rd_val since nanboxing has been done.
+		  // pbypass.bypass_state = ((ostatus == OSTATUS_PIPE) ? BYPASS_RD_RDVAL : BYPASS_RD);
+		  // pbypass.rd_val       = data_to_stage3.prd_val;
+
+		  // Option 2: shorter critical path, since the data is not bypassed into previous stage,
+		  // (the bypassing is effectively delayed until the next stage).
+		  accelbypass.bypass_state = BYPASS_RD;
+               end
+`endif
+
 
 `ifdef INCLUDE_TANDEM_VERIF
 	    let trace_data = rg_stage2.trace_data;
@@ -386,12 +564,22 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					   data_to_stage3  : data_to_stage3,
 					   bypass          : bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
                                          , fbypass         : fbypass
-`endif
 `ifdef POSIT
                                          , pbypass         : no_pbypass
 `endif
+`endif
+
+//**************************************************
+
+`ifdef ROCC
+                                         , roccbypass         : no_roccbypass
+`endif
+//**************************************************
+
+
+`ifdef ACCEL
+                                         , accelbypass         : no_accelbypass
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
                                          , trace_data      : trace_data
@@ -416,12 +604,21 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : no_bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
-`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
+`endif
+
+//**************************************************
+
+`ifdef ROCC
+                                         , roccbypass         : no_roccbypass
+`endif
+//**************************************************
+
+`ifdef ACCEL
+                                      , accelbypass         : no_accelbypass
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
                                       , trace_data      : trace_data
@@ -455,13 +652,23 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
-`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
 `endif
+
+//**************************************************
+
+`ifdef ROCC
+                                         , roccbypass         : no_roccbypass
+`endif
+//**************************************************
+
+`ifdef ACCEL
+                                      , accelbypass         : no_accelbypass
+`endif
+
 `ifdef INCLUDE_TANDEM_VERIF
                                       , trace_data      : trace_data
 `endif
@@ -495,12 +702,21 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
                                       , fbypass         : no_fbypass
-`endif
 `ifdef POSIT
                                       , pbypass         : no_pbypass
 `endif
+`endif
+
+//**************************************************
+
+`ifdef ROCC
+                                         , roccbypass         : no_roccbypass
+`endif
+//**************************************************
+
+`ifdef ACCEL
+                                      , accelbypass         : no_accelbypass
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
                                       , trace_data      : trace_data
@@ -529,7 +745,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
          data_to_stage3.fpr_flags= fflags;
 `ifdef POSIT
          data_to_stage3.no_rd_upd= rg_stage2.no_rd_upd;
-         data_to_stage3.rd_in_ppr= rg_stage2.rd_in_ppr;
+         data_to_stage3.rd_in_prf= rg_stage2.rd_in_prf;
          data_to_stage3.prd_val  = truncate (value);
 `endif
 `ifdef RV64
@@ -539,15 +755,12 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `endif
 
 	 let bypass              = bypass_base;
-`ifndef ONLY_POSITS
          let fbypass             = fbypass_base;
-`endif
 `ifdef POSIT
          let pbypass             = pbypass_base;
 `endif
          // result is meant for a FPR
          if (rg_stage2.rd_in_fpr) begin
-`ifndef ONLY_POSITS
             fbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
                                                                : BYPASS_RD);
 `ifdef ISA_D
@@ -555,12 +768,11 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `else
             fbypass.rd_val          = truncate (value);
 `endif
-`endif
          end
 
 `ifdef POSIT
-         else if ((rg_stage2.rd_in_ppr) || (rg_stage2.no_rd_upd)) begin
-            if ((rg_stage2.rd_in_ppr) && (!rg_stage2.no_rd_upd)) begin
+         else if ((rg_stage2.rd_in_prf) || (rg_stage2.no_rd_upd)) begin
+            if ((rg_stage2.rd_in_prf) && (!rg_stage2.no_rd_upd)) begin
                pbypass.bypass_state = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
                                                                : BYPASS_RD);
                pbypass.rd_val       = truncate (value);
@@ -592,29 +804,151 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 	 data_to_stage3.trace_data = trace_data;
 `endif
 
+//**************************************************
+`ifdef ROCC
+      // This stage is doing ROCC accelerator op
+       if (rg_stage2.op_stage2 == OP_Stage2_ROCC) begin  
+
+
+	     let ostatus = ((! fwrap.valid) ? OSTATUS_BUSY : OSTATUS_PIPE); //set status as per rocc accel
+//instantiation of roccaccel has been done using fwrap 
+
+    
+     // Extract fields from ROCC result which are necessary to be sent to writeback stage(Stage 3)
+
+//if xd=0 do not wait for response from fwrapper else wait for the response and then proceed
+
+//funct3 in Accelerator is termed as rg_sel-where rg_sel[2] is xd;rg_sel[1] is xs1;rg_sel[0] is xs2 (RoCC format)
+            
+          let data_to_stage3  = data_to_stage3_base;
+          let  xd = rg_stage.funct3[2];   //the msb bit of funct3,in RoCC terms its xd
+          
+	     if((!xd)==0) begin
+         WrapperF_in_res rocc_resp=  ff_ROCCRsp.first;   //extracting the  response from ROCCAccel in rocc_resp
+	     data_to_stage3.prd_val  = rocc_resp.result; //rocc accelerator result
+         end
+         data_to_stage3.no_rd_upd= rg_stage2.no_rd_upd;
+	      data_to_stage3.rd_valid = (ostatus == OSTATUS_PIPE);
+         data_to_stage3.rd_in_fpr= rg_stage2.rd_in_fpr;
+       
+         
+	     let bypass                = bypass_base;
+        let roccbypass            = roccbypass_base;  
+
+         // result is meant for a FPR
+         if (rg_stage2.rd_in_fpr) begin
+            roccbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                               : BYPASS_RD);
+            roccbypass.rd_val          = value;
+
+         end
+
+
+         // result is meant for a GPR (while using vector operations)
+         else begin
+            bypass.bypass_state     = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                               : BYPASS_RD);
+`ifdef RV64
+            bypass.rd_val           = (value);
+`else
+            bypass.rd_val           = truncate (value);
+`endif
+          end
+`endif
+
+
+//**************************************************
+
+`ifdef ACCEL
+      // This stage is doing Posit accelerator op
+       if (rg_stage2.op_stage2 == OP_Stage2_ACCEL) begin  
+
+
+	     let ostatus = ((! wrap.valid) ? OSTATUS_BUSY : OSTATUS_PIPE); //set status as per posit accel
+//instantiation of positaccel has been done using wrap 
+
+    
+     // Extract fields from PositAccel result which are necessary to be sent to writeback stage(Stage 3)(clarify this that what all to be sent)
+
+//if xd=0 do not wait for response from wrapper else wait for the response and then proceed
+
+//funct3 in Accelerator is termed as rg_sel-where rg_sel[2] is xd;rg_sel[1] is xs1;rg_sel[0] is xs2.(in terms of RoCC format)
+            
+          let data_to_stage3  = data_to_stage3_base;
+          let  xd  =rg_stage.funct3[2]; //the msb bit of funct3,in RoCC terms its xd
+          
+	     if((!xd)==0) begin
+         Wrapper_in_res accel_resp=  ff_ROCCRsp.first; //extracting the  response from PositAccel in accel_resp
+	     data_to_stage3.prd_val  = accel_resp.result; //accelerator result
+         end
+         data_to_stage3.no_rd_upd= rg_stage2.no_rd_upd;
+	 data_to_stage3.rd_valid = (ostatus == OSTATUS_PIPE);
+         data_to_stage3.rd_in_ppr= rg_stage2.rd_in_ppr;
+       
+         
+	let bypass                = bypass_base;
+        let accelbypass           = accelbypass_base;  
+
+         // result is meant for a PPR
+         if (rg_stage2.rd_in_ppr) begin
+            accelbypass.bypass_state    = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                               : BYPASS_RD);
+            accelbypass.rd_val          = value;
+
+         end
+
+
+         // result is meant for a GPR (while using vector operations)
+         else begin
+            bypass.bypass_state     = ((ostatus==OSTATUS_PIPE) ? BYPASS_RD_RDVAL
+                                                               : BYPASS_RD);
+`ifdef RV64
+            bypass.rd_val           = (value);
+`else
+            bypass.rd_val           = truncate (value);
+`endif
+          end
+`endif
+end
+ // -----------------------------------------------------
+
+
+//stage 2 outputs
 	 output_stage2 = Output_Stage2 {ostatus         : ostatus,
 					trap_info       : trap_info_fbox,
 					data_to_stage3  : data_to_stage3,
 					bypass          : bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
                                       , fbypass         : fbypass
-`endif
 `ifdef POSIT
                                       , pbypass         : pbypass
 `endif
+`endif
+
+//**************************************************
+
+`ifdef ROCC
+                                      , roccbypass         : roccbypass
+`endif
+//**************************************************
+
+
+`ifdef ACCEL
+                                      , accelbypass         : accelbypass
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
                                       , trace_data      : trace_data
 `endif
          };
-      end
+end
 `endif
 
       return output_stage2;
+
    endfunction
 
-   // ----------------
+   // -------------------------------------------------------------
+
    // Initiate DM, Shifter box, MBox or FBox op
 
    function Action fa_enq (Data_Stage1_to_Stage2 x);
@@ -670,18 +1004,7 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 `endif
 `endif
 	    dcache.req (cache_op,
-`ifdef POSIT
-            // The PSW/PLW differentiate from the FSW/FLW purely
-            // based on the f3 field. But this differentiation
-            // does not apply to the caches who should treat a
-            // posit load/store as a signed 32-bit load/store. If
-            // the unchanged f3 is passed onto the cache, it would
-            // treat the posit load/store as unsigned word op.
-			((x.rs_frm_ppr || x.rd_in_ppr) ? f3_FLW
-                                                       : instr_funct3 (x.instr)),
-`else
 			instr_funct3 (x.instr),
-`endif
 `ifdef ISA_A
 			amo_funct7,
 `endif
@@ -742,6 +1065,59 @@ module mkCPU_Stage2 #(Bit #(4)         verbosity,
 		     );
          end
 `endif
+
+//**************************************************
+
+`ifdef ROCC
+	 // If ROCCAccel op, initiate it
+	 else if (x.op_stage2 == OP_Stage2_ROCC) begin
+	    // Instr fields required for decode for opcodes
+            let opcode = instr_opcode (x.instr);
+	         let funct7 = instr_funct7 (x.instr);
+            let funct3 = instr_funct3 (x.instr);
+            let rs2    = instr_rs2    (x.instr);
+            /*Bit #(32) val1 = x.val1_frm_gpr ? extend (x.val1)
+                                            : extend (x.fval1);*/ //when dealing with vectors,it maybe used
+
+	         fwrap.req (  opcode       //ROCCAccel is instantiated using fwrap
+		      , funct7
+		      , x.rounding_mode   // rm
+		      , funct3          
+		      , x.roccf_value_bit           //value bit (RoCC)
+                      //,rs2
+                      ,x.rd
+		      , x.roccval1
+		      , x.roccval2
+		     );
+         end
+`endif
+
+//**************************************************
+
+`ifdef ACCEL
+	 // If PositAccel op, initiate it
+	 else if (x.op_stage2 == OP_Stage2_ACCEL) begin
+	    // Instr fields required for decode for opcodes
+            let opcode = instr_opcode (x.instr);
+	    let funct7 = instr_funct7 (x.instr);
+            let funct3 = instr_funct3 (x.instr);
+            let rs2    = instr_rs2    (x.instr);
+            /*Bit #(32) val1 = x.val1_frm_gpr ? extend (x.val1)
+                                            : extend (x.fval1);*/ //when dealing with vectors,it maybe used
+
+	    wrap.req (  opcode       //PositAccel is instantiated using wrap
+		      , funct7
+		      , x.rounding_mode   // rm
+		      , funct3          
+		      , x.rocc_value_bit           //value bit (RoCC)
+                      //,rs2
+                      ,x.rd
+		      , x.accelval1
+		      , x.accelval2
+		     );
+         end
+`endif
+
       endaction
    endfunction
 
@@ -776,3 +1152,4 @@ endmodule
 // ================================================================
 
 endpackage
+
