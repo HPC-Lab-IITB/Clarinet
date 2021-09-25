@@ -111,11 +111,13 @@ STEP 2: Modify the binutils source files to recognize the new instructions
 {"plw",       0, INSN_CLASS_F,   "D,A,s",  0, (int) M_FLW, match_never, INSN_MACRO },
 {"psw",       0, INSN_CLASS_F,   "T,q(s)",  MATCH_PSW, MASK_PSW, match_opcode, INSN_DREF|INSN_4_BYTE },
 {"psw",       0, INSN_CLASS_F,   "T,A,s",  0, (int) M_FSW, match_never, INSN_MACRO },
+
+{"pmv.x.w",   0, INSN_CLASS_F,   "d,S",  MATCH_PMV_X_W, MASK_PMV_X_W, match_opcode, 0 },
+{"pmv.w.x",   0, INSN_CLASS_F,   "D,s",  MATCH_PMV_W_X, MASK_PMV_W_X, match_opcode, 0 },
+
 /* Clarinet new instructions -- END */
 
 
 (c) Compile the modified toolchain. I used crosstool-ng but any other
 technique should work as well.
-
-   
 
