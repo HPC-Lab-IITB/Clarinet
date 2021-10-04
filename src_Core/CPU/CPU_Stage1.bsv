@@ -40,16 +40,6 @@ import FPR_RegFile      :: *;
 import PPR_RegFile      :: *;
 `endif
 `endif
-
-//**************************************************
-
-`ifdef ROCC                       //if accelerator is set
-import FPR_RegFile      :: *;
-`endif
-
-//**************************************************
-
-
 `ifdef ACCEL                       //if accelerator is set;assuming both inputs as scalars  and scalar output for now
 import PPR_RegFile      :: *;
 `endif
@@ -100,19 +90,6 @@ module mkCPU_Stage1 #(Bit #(4)         verbosity,
 		      PBypass          pbypass_from_stage3,
 `endif
 `endif
-
-//**************************************************
-
-ifdef ROCC     
-                      FPR_RegFile_IFC     fpr_regfile,
-		      roccBypass          roccbypass_from_stage2,
-		      roccBypass          rocclbypass_from_stage3,
-`endif
-
-//**************************************************
-
-
-
 `ifdef ACCEL     //asuming that for now dealing with scalars,so just using PPR
                       PPR_RegFile_IFC      ppr_regfile,
 		      AccelBypass          accelbypass_from_stage2,
@@ -204,31 +181,10 @@ ifdef ROCC
 `endif
 `endif
 
-//**************************************************
-
-`ifdef ROCC
-   // rs1 read and bypass
-   let roccrs1_val = fpr_regfile.read_rs1 (rs1);  
-   match { .roccbusy1a, .roccrs1a } = rocc_fn_fpr_bypass (roccbypass_from_stage3, rs1, roccrs1_val);
-   match { .roccbusy1b, .roccrs1b } = rocc_fn_fpr_bypass (roccbypass_from_stage2, rs1, roccrs1a);
-   Bool roccrs1_busy = (roccbusy1a || roccbusy1b);
-   WordPL roccrs1_val_bypassed = roccrs1b;
-
-   // rs2 read and bypass
-   let roccrs2_val = fpr_regfile.read_rs2 (rs2);
-   match { .roccbusy2a, .roccrs2a } = rocc_fn_fpr_bypass (roccbypass_from_stage3, rs2, roccrs2_val);
-   match { .roccbusy2b, .roccrs2b } = rocc_fn_fpr_bypass (roccbypass_from_stage2, rs2, roccrs2a);
-   Bool roccrs2_busy = (roccbusy2a || roccbusy2b);
-   WordPL roccrs2_val_bypassed = roccrs2b;
-`endif
-
-//**************************************************
-
-
 `ifdef ACCEL
    // rs1 read and bypass(similar to POSIT)
    let accelrs1_val = ppr_regfile.read_rs1 (rs1);  
-   match { .accelbusy1a, .accelrs1a } = acccel_fn_ppr_bypass (accelbypass_from_stage3, rs1, accelrs1_val);
+   match { .accelbusy1a, .accelrs1a } = accel_fn_ppr_bypass (accelbypass_from_stage3, rs1, accelrs1_val);
    match { .accelbusy1b, .accelrs1b } = accel_fn_ppr_bypass (accelbypass_from_stage2, rs1, accelrs1a);
    Bool accelrs1_busy = (accelbusy1a || accelbusy1b);
    WordPL accelrs1_val_bypassed = accelrs1b;
@@ -268,23 +224,11 @@ ifdef ROCC
 `endif
 `endif
 
-//**************************************************
-
-`ifdef ROCC 
-				roccrs1_val   : roccrs1_val_bypassed,
-				roccrs2_val   : roccrs2_val_bypassed,
-				roccf_value_bit : rg_stage_input.roccf_value_bit,  //value bit of RoCC Floating
-`endif
-
-//**************************************************
-
-
 `ifdef ACCEL 
 				accelrs1_val   : accelrs1_val_bypassed,
 				accelrs2_val   : accelrs2_val_bypassed,
 				rocc_value_bit : rg_stage_input.rocc_value_bit,  //value bit of RoCC
 `endif
-
 				mstatus        : csr_regfile.read_mstatus,
 				misa           : csr_regfile.read_misa };
 
@@ -314,34 +258,17 @@ ifdef ROCC
 					       rounding_mode : alu_outputs.rm,
 `endif
 
-//**************************************************
-
-`ifdef ROCC            //ToDo:include GPR when dealing with vectors
-                          
-					       roccval1     : alu_outputs.roccval1,     //input1
-					       roccval2     : alu_outputs.roccval2,     //input2
-						    rs_frm_fpr   : alu_outputs.rs_frm_fpr,
-					       rd_in_fpr    : alu_outputs.rd_in_fpr,
-						    funct3       : alu_outputs.funct3,       //In RoCC,funct3 is referred as rg_sel=[xd xs1 xs2]
-                      no_rd_upd    : alu_outputs.no_rd_upd,
-						    funct7	     : alu_outputs.funct7,  //in accelerator funct7 acts as the opcode to determine what accelerator operation to be carried out
-						    roccf_value_bit : alu_outputs.roccf_value_bit,  //value bit for RoCC FLoating
-						    rounding_mode : alu_outputs.rm,
-`endif
-
-//**************************************************
-
 `ifdef ACCEL            //ToDo:include GPR when dealing with vectors
                           
 					       accelval1     : alu_outputs.accelval1,//input1
 					       accelval2     : alu_outputs.accelval2,//input2
-						   rs_frm_ppr    : alu_outputs.rs_frm_ppr,
+					       rs_frm_ppr    : alu_outputs.rs_frm_ppr,
 					       rd_in_ppr     : alu_outputs.rd_in_ppr,
-						   funct3        : alu_outputs.funct3, //In RoCC,funct3 is referred as rg_sel=[xd xs1 xs2]
-                           no_rd_upd     : alu_outputs.no_rd_upd,
-						   funct7	     : alu_outputs.funct7, //in accelerator funct7 acts as the opcode to determine what accelerator operation to be carried out
-						   rocc_value_bit : alu_outputs.rocc_value_bit,  //value bit for RoCC
-						   rounding_mode : alu_outputs.rm,
+					       funct3        : alu_outputs.funct3, //In RoCC,funct3 is referred as rg_sel=[xd xs1 xs2]
+                                               no_rd_upd     : alu_outputs.no_rd_upd,
+					       funct7	     : alu_outputs.funct7, //in accelerator funct7 acts as the opcode to determine what accelerator operation to be carried out
+					       rocc_value_bit : alu_outputs.rocc_value_bit,  //value bit for RoCC
+					       rounding_mode : alu_outputs.rm,
 `endif
 `ifdef INCLUDE_TANDEM_VERIF
 					       trace_data    : alu_outputs.trace_data,
@@ -389,23 +316,6 @@ ifdef ROCC
 						     rounding_mode   : ?,
 `endif
 
-//**************************************************
-
-`ifdef ROCC
-						     roccval1           : ?,
-						     roccval2           : ?,
-					        rs_frm_fpr      : ?,
-						     rd_in_fpr       : ?,
-							  no_rd_upd       : ?,
-                       funct3          : ?,
-                       funct7		     : ?,
-							  roccf_value_bit  : ?,
-							  rounding_mode   : ?,
-							
-`endif
-
-//**************************************************
-
 `ifdef ACCEL
 						     accelval1           : ?,
 						     accelval2           : ?,
@@ -446,20 +356,6 @@ ifdef ROCC
       end
 `endif
 `endif
-
-//**************************************************
-
-
-`ifdef ROCC
-      // Stall if bypass pending for FPR rs1, rs2 or rs3
-      else if (roccrs1_busy || roccrs2_busy) begin
-	   output_stage1.ostatus = OSTATUS_BUSY;
-      end
-`endif
-
-//**************************************************
-
-
 `ifdef ACCEL
       // Stall if bypass pending for PPR rs1, rs2 or rs3
       else if (accelrs1_busy || accelrs2_busy) begin
@@ -553,4 +449,3 @@ endmodule
 // ================================================================
 
 endpackage
-

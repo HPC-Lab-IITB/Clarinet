@@ -22,6 +22,7 @@ package CPU_Globals;
 import ISA_Decls :: *;
 
 import TV_Info   :: *;
+//import Accel_Defines :: *;
 
 // ================================================================
 // Output status of each stage
@@ -180,6 +181,28 @@ endinstance
 `endif
 `endif
 
+`ifdef ACCEL
+typedef struct {
+   Bypass_State  bypass_state;
+   RegName       rd;
+   WordAL        rd_val;
+   } AccelBypass
+deriving (Bits);
+
+instance FShow #(AccelBypass);
+   function Fmt fshow (AccelBypass x);
+      let fmt0 = $format ("AccelBypass {");
+      let fmt1 = ((x.bypass_state == BYPASS_RD_NONE)
+		  ? $format ("PRd -")
+		  : $format ("PRd %0d ", x.rd) + ((x.bypass_state == BYPASS_RD)
+						 ? $format ("-")
+						 : $format ("prd_val:%h", x.rd_val)));
+      let fmt2 = $format ("}");
+      return fmt0 + fmt1 + fmt2;
+   endfunction
+endinstance
+`endif
+
 // ----------------
 // Baseline bypass info
 
@@ -197,6 +220,12 @@ PBypass no_pbypass = PBypass {bypass_state: BYPASS_RD_NONE,
 			      rd: ?,
 			      rd_val: ? };
 `endif
+`endif
+`ifdef ACCEL
+AccelBypass no_accelbypass = AccelBypass {bypass_state: BYPASS_RD_NONE,
+			      rd: ?,
+			      rd_val: ? };
+
 `endif
 
 
@@ -218,7 +247,6 @@ endfunction
 // Returns '(busy, val)'
 // 'busy' means that the RegName is valid and matches, but the value is not available yet
 
-`ifndef ONLY_POSITS
 function Tuple2 #(Bool, WordFL) fn_fpr_bypass (FBypass bypass, RegName rd, WordFL rd_val);
    Bool busy = ((bypass.bypass_state == BYPASS_RD) && (bypass.rd == rd));
    WordFL val= (  ((bypass.bypass_state == BYPASS_RD_RDVAL) && (bypass.rd == rd))
@@ -226,7 +254,6 @@ function Tuple2 #(Bool, WordFL) fn_fpr_bypass (FBypass bypass, RegName rd, WordF
 		: rd_val);
    return tuple2 (busy, val);
 endfunction
-`endif
 
 `ifdef POSIT
 // PBypass functions for Posits
@@ -241,6 +268,20 @@ function Tuple2 #(Bool, WordPL) fn_ppr_bypass (PBypass bypass, RegName rd, WordP
    return tuple2 (busy, val);
 endfunction
 `endif
+`endif
+
+`ifdef ACCEL
+// AccelBypass functions for PositAccel
+// Returns '(busy, val)'
+// 'busy' means that the RegName is valid and matches, but the value is not available yet
+
+function Tuple2 #(Bool, WordAL) fn_accel_ppr_bypass (AccelBypass bypass, RegName rd, WordPL rd_val);
+   Bool busy = ((bypass.bypass_state == BYPASS_RD) && (bypass.rd == rd));
+   WordPL val= (  ((bypass.bypass_state == BYPASS_RD_RDVAL) && (bypass.rd == rd))
+		? bypass.rd_val
+		: rd_val);
+   return tuple2 (busy, val);
+endfunction
 `endif
 
 // ================================================================
@@ -351,6 +392,7 @@ typedef struct {
    Instr_C        instr_C;            // Valid if no exception; original compressed instruction
    WordXL         pred_pc;            // Predicted next pc
    Decoded_Instr  decoded_instr;
+   Bit#(1) rocc_value_bit;       //value bit of RoCC
    } Data_StageD_to_Stage1
 deriving (Bits);
 
@@ -460,6 +502,10 @@ typedef enum {  OP_Stage2_ALU         // Pass-through (non mem, M, FD, AMO)
 `ifdef ISA_F
 	      , OP_Stage2_FD
 `endif
+`ifdef ACCEL
+	      , OP_Stage2_ACCEL
+`endif
+
    } Op_Stage2
 deriving (Eq, Bits, FShow);
 
@@ -469,7 +515,7 @@ typedef struct {
    Instr      instr;             // For debugging. Just funct3, funct7 are
                                  // enough for functionality.
    Op_Stage2  op_stage2;
-   RegName    rd;
+   RegName    rd;                //Destination register
    Addr       addr;              // Branch, jump: newPC
                                  // Mem ops and AMOs: mem addr
    WordXL     val1;              // OP_Stage2_ALU: rd_val
@@ -489,11 +535,25 @@ typedef struct {
 `ifdef POSIT
    Bool       no_rd_upd;         // No rd to be updated as result goes to quire
    Bool       rs_frm_ppr;        // The rs is from PPR (Posit stores)
-   Bool       rd_in_ppr;         // The rd should update into PPR
+   Bool       rd_in_ppr;         // The rd should update into PRF
    WordPL     pval1;             // OP_Stage2_P: arg1
    WordPL     pval2;             // OP_Stage2_P: arg2
 `endif
    Bit #(3)   rounding_mode;     // rounding mode from fcsr_frm or instr.rm
+`endif
+
+`ifdef ACCEL
+   // PositAccel fields
+   Bool       no_rd_upd;         // No rd to be updated as result goes to quire
+   Bool       rs_frm_ppr;        // The rs is from PPR (Posit stores)
+   Bool       rd_in_ppr;         // The rd should update into PRF
+   WordAL     accelval1;         // OP_Stage2_P: arg1
+   WordAL     accelval2;         // OP_Stage2_P: arg2
+   Bit #(3)   rounding_mode;    //rounding mode
+   Bit #(3)   funct3;        ////Part of custom instruction to select whether register address is of flute or accelerator , in accelerator funct3 is referred as rg_sel in which  rg_sel[2] is xd;rg_sel[1] is xs1;rg_sel[0] is xs2.
+   
+   Bit #(7)   funct7;         //funct7 decides  which accelerator operation to be performed by the accelerator,inside the accelerator this is referred as opcode 
+   Bit #(1)   rocc_value_bit;          //Value bit of RoCC
 `endif
 
 `ifdef INCLUDE_TANDEM_VERIF
@@ -511,18 +571,25 @@ instance FShow #(Data_Stage1_to_Stage2);
 `ifdef ISA_F
       fmt = fmt + $format ("\n");
       fmt = fmt + $format ("            rd_in_fpr: ", fshow (x.rd_in_fpr));
-      fmt = fmt + $format ("            rs_frm_fpr: ", fshow (x.rs_frm_fpr));
       fmt = fmt + $format ("            fval1:%h  fval2:%h  fval3:%h}",
 			   x.fval1, x.fval2, x.fval3);
 `ifdef POSIT
       fmt = fmt + $format ("\n");
       fmt = fmt + $format ("            no_rd_upd: ", fshow (x.no_rd_upd));
       fmt = fmt + $format ("            rd_in_ppr: ", fshow (x.rd_in_ppr));
-      fmt = fmt + $format ("            rs_frm_ppr: ", fshow (x.rs_frm_ppr));
       fmt = fmt + $format ("            pval1:%h  pval2:%h }",
 			   x.pval1, x.pval2);
 `endif
 `endif
+
+`ifdef ACCEL
+      fmt = fmt + $format ("\n");
+      fmt = fmt + $format ("            no_rd_upd: ", fshow (x.no_rd_upd));
+      fmt = fmt + $format ("            rd_in_ppr: ", fshow (x.rd_in_ppr));
+      fmt = fmt + $format ("            accelval1:%h  accelval2:%h }",
+			   x.pval1, x.pval2);
+      fmt = fmt + $format ("       funct3:%h rd:%h opcode:%h value:%h" ,x.funct3,x.rd,x.funct7,x.rocc_value_bit);
+     `endif
       return fmt;
    endfunction
 endinstance
@@ -538,15 +605,18 @@ typedef struct {
    Bypass                 bypass;
 
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    FBypass                fbypass;
-`endif
 
 `ifdef POSIT
    PBypass                pbypass;
 `endif
 
 `endif
+
+`ifdef ACCEL                                  //change numericals
+   AccelBypass                accelbypass;
+`endif
+
 
    // feedforward data
    Data_Stage2_to_Stage3  data_to_stage3;
@@ -594,6 +664,14 @@ typedef struct {
 `endif
 `endif
 
+`ifdef ACCEL        //sending from stage 2 to stage 3,changes may be required here
+ 
+   Bool      no_rd_upd;
+   Bool      rd_in_ppr;         // The rd should update into PPR
+   WordAL    prd_val;
+`endif
+
+
 `ifdef INCLUDE_TANDEM_VERIF
    Trace_Data             trace_data;
 `endif
@@ -621,6 +699,17 @@ instance FShow #(Data_Stage2_to_Stage3);
       else
 `endif
 `endif
+
+`ifdef ACCEL
+   
+      if (x.rd_in_ppr)
+         if (x.no_rd_upd)
+            fmt = fmt + $format ("  Output to Quire. No Rd update.");
+         else
+            fmt = fmt + $format ("  prd:%0d  rd_val:%h\n", x.rd, x.prd_val);
+      else
+`endif
+
          fmt = fmt + $format ("  grd:%0d  rd_val:%h\n", x.rd, x.rd_val);
       return fmt;
    endfunction
@@ -633,12 +722,13 @@ typedef struct {
    Stage_OStatus  ostatus;
    Bypass         bypass;
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    FBypass        fbypass;
-`endif
 `ifdef POSIT
    PBypass        pbypass;
 `endif
+`endif
+`ifdef ACCEL
+   AccelBypass        accelbypass;
 `endif
 
 `ifdef INCLUDE_TANDEM_VERIF

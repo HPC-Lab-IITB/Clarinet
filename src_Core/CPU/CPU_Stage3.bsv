@@ -81,9 +81,7 @@ endinterface
 module mkCPU_Stage3 #(Bit #(4)         verbosity,
 		      GPR_RegFile_IFC  gpr_regfile,
 `ifdef ISA_F
-`ifndef ONLY_POSITS
 		      FPR_RegFile_IFC  fpr_regfile,
-`endif
 `ifdef POSIT
                       PPR_RegFile_IFC  ppr_regfile,
 `endif
@@ -107,14 +105,12 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 			     };
 
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    let fbypass_base = FBypass {bypass_state: BYPASS_RD_NONE,
 			       rd:           rg_stage3.rd,
 			       // WordFL        WordFL
 			       rd_val:       rg_stage3.frd_val
 			       };
 
-`endif
 `ifdef POSIT
    let pbypass_base = PBypass {bypass_state: BYPASS_RD_NONE,
 			       rd:           rg_stage3.rd,
@@ -136,9 +132,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
    function Output_Stage3 fv_out;
       let bypass = bypass_base;
 `ifdef ISA_F
-`ifndef ONLY_POSITS
       let fbypass = fbypass_base;
-`endif
 `ifdef POSIT
       let pbypass = pbypass_base;
 `endif
@@ -147,18 +141,14 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 `ifdef POSIT
          pbypass.bypass_state = BYPASS_RD_NONE;
 `endif
-`ifndef ONLY_POSITS
          fbypass.bypass_state = (rg_full && rg_stage3.rd_valid) ? BYPASS_RD_RDVAL
                                                                 : BYPASS_RD_NONE;
-`endif
       end
 
 `ifdef POSIT
       else if (rg_stage3.rd_in_ppr) begin
          bypass.bypass_state = BYPASS_RD_NONE;
-`ifndef ONLY_POSITS
          fbypass.bypass_state = BYPASS_RD_NONE;
-`endif
 
          if (!rg_stage3.no_rd_upd) 
             pbypass.bypass_state = (rg_full && rg_stage3.rd_valid) ? BYPASS_RD_RDVAL
@@ -170,9 +160,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 `endif
 
       else begin
-`ifndef ONLY_POSITS
          fbypass.bypass_state = BYPASS_RD_NONE;
-`endif
 `ifdef POSIT
          pbypass.bypass_state = BYPASS_RD_NONE;
 `endif
@@ -202,9 +190,7 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
       return Output_Stage3 {ostatus: (rg_full ? OSTATUS_PIPE : OSTATUS_EMPTY),
 			    bypass : bypass
 `ifdef ISA_F
-`ifndef ONLY_POSITS
 			    , fbypass: fbypass
-`endif
 `ifdef POSIT
 			    , pbypass: pbypass
 `endif
@@ -225,12 +211,10 @@ module mkCPU_Stage3 #(Bit #(4)         verbosity,
 `ifdef ISA_F
             // Write to FPR
             if (rg_stage3.rd_in_fpr) begin
-`ifndef ONLY_POSITS
                fpr_regfile.write_rd (rg_stage3.rd, rg_stage3.frd_val);
 	       if (verbosity > 1)
                   $display ("    S3.fa_deq: write FRd 0x%0h, rd_val 0x%0h",
                             rg_stage3.rd, rg_stage3.frd_val);
-`endif
             end
 
 `ifdef POSIT

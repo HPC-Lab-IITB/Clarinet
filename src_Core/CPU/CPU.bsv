@@ -133,12 +133,10 @@ module mkCPU (CPU_IFC);
    // General purpose registers and CSRs
    GPR_RegFile_IFC  gpr_regfile  <- mkGPR_RegFile;
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    FPR_RegFile_IFC  fpr_regfile  <- mkFPR_RegFile;
-`endif
-`endif
 `ifdef POSIT
    PPR_RegFile_IFC  ppr_regfile  <- mkPPR_RegFile;
+`endif
 `endif
 
    CSR_RegFile_IFC  csr_regfile  <- mkCSR_RegFile;
@@ -214,12 +212,10 @@ module mkCPU (CPU_IFC);
    CPU_Stage3_IFC stage3 <- mkCPU_Stage3 (cur_verbosity,
 					  gpr_regfile,
 `ifdef ISA_F
-`ifndef ONLY_POSITS
 					  fpr_regfile,
-`endif
-`endif
 `ifdef POSIT
 					  ppr_regfile,
+`endif
 `endif
 					  csr_regfile);
 
@@ -230,16 +226,14 @@ module mkCPU (CPU_IFC);
 					   stage2.out.bypass,
 					   stage3.out.bypass,
 `ifdef ISA_F
-`ifndef ONLY_POSITS
 					   fpr_regfile,
 					   stage2.out.fbypass,
 					   stage3.out.fbypass,
-`endif
-`endif
 `ifdef POSIT
 					   ppr_regfile,
 					   stage2.out.pbypass,
 					   stage3.out.pbypass,
+`endif
 `endif
 					   csr_regfile,
 					   rg_epoch,
@@ -281,11 +275,9 @@ module mkCPU (CPU_IFC);
    FIFOF #(DM_CPU_Rsp #(XLEN))     f_gpr_rsps <- mkFIFOF;
 
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    // Debugger FPR read/write request/response
    FIFOF #(DM_CPU_Req #(5,  FLEN)) f_fpr_reqs <- mkFIFOF;
    FIFOF #(DM_CPU_Rsp #(FLEN))     f_fpr_rsps <- mkFIFOF;
-`endif
 `endif
 
    // Debugger CSR read/write request/response
@@ -318,11 +310,10 @@ module mkCPU (CPU_IFC);
    // ================================================================
    // Debugging: print instruction trace info
 
-   function Action fa_emit_instr_trace (Bit #(64) cycle, Bit #(64) instret, WordXL pc, Instr instr, Priv_Mode priv);
+   function fa_emit_instr_trace (instret, pc, instr, priv);
       action
-	 if ((cur_verbosity >= 1) || ((instret & 'h_F_FFFF) == 0))
-	    $display ("(%06d): instret:%0d  PC:0x%0h  instr:0x%0h  priv:%0d",
-		      cycle, instret, pc, instr, priv);
+	 if (cur_verbosity == 1)
+	    $display ("instret:%0d  PC:0x%0h  instr:0x%0h  priv:%0d", instret, pc, instr, priv);
       endaction
    endfunction
 
@@ -371,7 +362,7 @@ module mkCPU (CPU_IFC);
 
 	 if (cur_verbosity > 1)
 	    $display ("    fa_stageF_redirect: minstret:%0d  new_pc:%0x  cur_priv:%0d, epoch %0d->%0d",
-		      minstret, new_pc, rg_cur_priv, rg_epoch, new_epoch);
+		      mcycle, minstret, new_pc, rg_cur_priv, rg_epoch, new_epoch);
       endaction
    endfunction
 
@@ -404,12 +395,10 @@ module mkCPU (CPU_IFC);
       $display ("    Stage3: ", fshow (stage3.out));
       $display ("        Bypass  to Stage1: ", fshow (stage3.out.bypass));
 `ifdef ISA_F
-`ifndef ONLY_POSITS
       $display ("        FBypass to Stage1: ", fshow (stage3.out.fbypass));
-`endif
-`endif
 `ifdef POSIT
       $display ("        PBypass to Stage1: ", fshow (stage3.out.pbypass));
+`endif
 `endif
       $display ("    Stage2: pc 0x%08h instr 0x%08h priv %0d",
 		stage2.out.data_to_stage3.pc,
@@ -418,12 +407,10 @@ module mkCPU (CPU_IFC);
       $display ("        ", fshow (stage2.out));
       $display ("        Bypass  to Stage1: ", fshow (stage2.out.bypass));
 `ifdef ISA_F
-`ifndef ONLY_POSITS
       $display ("        FBypass to Stage1: ", fshow (stage2.out.fbypass));
-`endif
-`endif
 `ifdef POSIT
       $display ("        PBypass to Stage1: ", fshow (stage2.out.pbypass));
+`endif
 `endif
 
       $display ("    Stage1: pc 0x%08h instr 0x%08h priv %0d",
@@ -468,12 +455,10 @@ module mkCPU (CPU_IFC);
 
       gpr_regfile.server_reset.request.put (?);
 `ifdef ISA_F
-`ifndef ONLY_POSITS
       fpr_regfile.server_reset.request.put (?);
-`endif
-`endif
 `ifdef POSIT
       ppr_regfile.server_reset.request.put (?);
+`endif
 `endif
       csr_regfile.server_reset.request.put (?);
       near_mem.server_reset.request.put (?);
@@ -514,12 +499,10 @@ module mkCPU (CPU_IFC);
    rule rl_reset_complete (rg_state == CPU_RESET2);
       let ack_gpr <- gpr_regfile.server_reset.response.get;
 `ifdef ISA_F
-`ifndef ONLY_POSITS
       let ack_fpr <- fpr_regfile.server_reset.response.get;
-`endif
-`endif
 `ifdef POSIT
       let ack_ppr <- ppr_regfile.server_reset.response.get;
+`endif
 `endif
       let ack_csr <- csr_regfile.server_reset.response.get;
       let ack_nm  <- near_mem.server_reset.response.get;
@@ -583,13 +566,10 @@ module mkCPU (CPU_IFC);
 
    // Halting conditions
    Bool halting = (stop_step_halt || mip_cmd_needed || (interrupt_pending && stage1_has_arch_instr));
-   // Stage1 can halt only when actually contains an instruction, downstream is
-   // empty and, if a branch misprediction, StageF is able to be redirected.
+   // Stage1 can halt only when actually contains an instruction and downstream is empty
    Bool stage1_halted = (   halting
 			 && (   (stage1.out.ostatus == OSTATUS_PIPE)
 			     || (stage1.out.ostatus == OSTATUS_NONPIPE))
-			 && (   (! stage1.out.redirect)
-			     || (stageF.out.ostatus != OSTATUS_BUSY))
 			 && (stage2.out.ostatus == OSTATUS_EMPTY)
 			 && (stage3.out.ostatus == OSTATUS_EMPTY));
 
@@ -695,7 +675,7 @@ module mkCPU (CPU_IFC);
 	 // Note: this instr cannot be a CSRRx updating INSTRET, since
 	 // CSRRx is done off-pipe
 	 csr_regfile.csr_minstret_incr;
-	 fa_emit_instr_trace (mcycle, minstret, stage2.out.data_to_stage3.pc, stage2.out.data_to_stage3.instr, rg_cur_priv);
+	 fa_emit_instr_trace (minstret, stage2.out.data_to_stage3.pc, stage2.out.data_to_stage3.instr, rg_cur_priv);
       end
 
       // ----------------
@@ -901,7 +881,7 @@ module mkCPU (CPU_IFC);
       end
 `endif
 
-      fa_emit_instr_trace (mcycle, minstret, epc, instr, rg_cur_priv);
+      fa_emit_instr_trace (minstret, epc, instr, rg_cur_priv);
 
       // Debug
       if (cur_verbosity != 0)
@@ -1015,7 +995,7 @@ module mkCPU (CPU_IFC);
 `endif
 
 	 // Debug
-	 fa_emit_instr_trace (mcycle, minstret, rg_csr_pc, instr, rg_cur_priv);
+	 fa_emit_instr_trace (minstret, rg_csr_pc, instr, rg_cur_priv);
 	 if (cur_verbosity > 1) begin
 	    $display ("    S1: write CSRRW/CSRRWI Rs1 %0d Rs1_val 0x%0h csr 0x%0h csr_val 0x%0h Rd %0d",
 		      rs1, rs1_val, csr_addr, csr_val, rd);
@@ -1135,7 +1115,7 @@ module mkCPU (CPU_IFC);
 `endif
 
 	 // Debug
-	 fa_emit_instr_trace (mcycle, minstret, rg_csr_pc, instr, rg_cur_priv);
+	 fa_emit_instr_trace (minstret, rg_csr_pc, instr, rg_cur_priv);
 	 if (cur_verbosity > 1) begin
 	    $display ("    S1: write CSRR_S_or_C: Rs1 %0d Rs1_val 0x%0h csr 0x%0h csr_val 0x%0h Rd %0d",
 		      rs1, rs1_val, csr_addr, csr_val, rd);
@@ -1200,7 +1180,7 @@ module mkCPU (CPU_IFC);
 `endif
 
       // Debug
-      fa_emit_instr_trace (mcycle, minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
+      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
       if (cur_verbosity != 0)
 	 $display ("    xRET: next_pc:0x%0h  new mstatus:0x%0h  new priv:%0d", next_pc, new_mstatus, new_priv);
    endrule: rl_stage1_xRET
@@ -1217,10 +1197,24 @@ module mkCPU (CPU_IFC);
 			   && (stageF.out.ostatus != OSTATUS_BUSY));
       if (cur_verbosity > 1) $display ("%0d: %m.rl_stage1_FENCE_I", mcycle);
 
-      // Save stage1.out.next_pc since it can be destroyed by FENCE.I op
+      // Save stage1.out.next_pc since it will be destroyed by FENCE.I op
       rg_next_pc <= stage1.out.next_pc;
       near_mem.server_fence_i.request.put (?);
       rg_state <= CPU_FENCE_I;
+
+      // Accounting
+      csr_regfile.csr_minstret_incr;
+
+`ifdef INCLUDE_TANDEM_VERIF
+      // Trace data
+      let trace_data = stage1.out.data_to_stage2.trace_data;
+      f_trace_data.enq (trace_data);
+`endif
+
+      // Debug
+      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
+      if (cur_verbosity > 1)
+	 $display ("%0d: %m.rl_stage1_FENCE_I", mcycle);
    endrule
 
    // ----------------
@@ -1232,21 +1226,13 @@ module mkCPU (CPU_IFC);
       // Await mem system FENCE.I completion
       let dummy <- near_mem.server_fence_i.response.get;
 
-      // Accounting
-      csr_regfile.csr_minstret_incr;
-      // Debug
-      fa_emit_instr_trace (mcycle, minstret,
-			   stage1.out.data_to_stage2.pc,
-			   stage1.out.data_to_stage2.instr,
-			   rg_cur_priv);
-`ifdef INCLUDE_TANDEM_VERIF
-      let trace_data = stage1.out.data_to_stage2.trace_data;
-      f_trace_data.enq (trace_data);
-`endif
       // Resume pipe
       stageD.set_full (False);
       stage1.set_full (False);    fa_step_check;
       fa_stageF_redirect (rg_next_pc);
+
+      if (cur_verbosity > 1)
+	 $display ("    CPU.rl_finish_FENCE_I");
    endrule: rl_finish_FENCE_I
 
    // ================================================================
@@ -1261,13 +1247,27 @@ module mkCPU (CPU_IFC);
 			 && (stageF.out.ostatus != OSTATUS_BUSY));
       if (cur_verbosity > 1) $display ("%0d: %m.rl_stage1_FENCE", mcycle);
 
-      // Save stage1.out.next_pc since it can be destroyed by FENCE op
       rg_next_pc <= stage1.out.next_pc;
       near_mem.server_fence.request.put (?);
       rg_state <= CPU_FENCE;
-   endrule: rl_stage1_FENCE
+
+      // Accounting
+      csr_regfile.csr_minstret_incr;
+
+`ifdef INCLUDE_TANDEM_VERIF
+      // Trace data
+      let trace_data = stage1.out.data_to_stage2.trace_data;
+      f_trace_data.enq (trace_data);
+`endif
+
+      // Debug
+      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
+      if (cur_verbosity > 1)
+	 $display ("%0d: %m.rl_stage1_FENCE", mcycle);
+   endrule
 
    // ----------------
+   // Finish FENCE
 
    rule rl_finish_FENCE (rg_state == CPU_FENCE);
       if (cur_verbosity > 1) $display ("%0d: %m.rl_finish_FENCE", mcycle);
@@ -1275,28 +1275,18 @@ module mkCPU (CPU_IFC);
       // Await mem system FENCE completion
       let dummy <- near_mem.server_fence.response.get;
 
-      // Accounting
-      csr_regfile.csr_minstret_incr;
-      // Debug
-      fa_emit_instr_trace (mcycle, minstret, stage1.out.data_to_stage2.pc,
-			   stage1.out.data_to_stage2.instr,
-			   rg_cur_priv);
-`ifdef INCLUDE_TANDEM_VERIF
-      // Trace data
-      let trace_data = stage1.out.data_to_stage2.trace_data;
-      f_trace_data.enq (trace_data);
-`endif
-
       // Resume pipe
       stageD.set_full (False);
       stage1.set_full (False);    fa_step_check;
       fa_stageF_redirect (rg_next_pc);
+
+      if (cur_verbosity > 1)
+	 $display ("    CPU.rl_finish_FENCE");
    endrule: rl_finish_FENCE
 
    // ================================================================
    // Stage1: nonpipe special: SFENCE.VMA
 
-`ifdef ISA_PRIV_S
 `ifdef ISA_C
    // TODO: analyze this carefully; added to resolve a blockage
    // imem_rl_fetch_next_32b is in CPU_Fetch_C.bsv, and calls imem32.req (near_mem.imem_req).
@@ -1314,38 +1304,42 @@ module mkCPU (CPU_IFC);
 			      && (stageF.out.ostatus != OSTATUS_BUSY));
       if (cur_verbosity > 1) $display ("%0d: %m.rl_stage1_SFENCE_VMA", mcycle);
 
-      // Save stage1.out.next_pc since it can be destroyed by FENCE op
       rg_next_pc <= stage1.out.next_pc;
-      near_mem.sfence_vma_server.request.put (?);
+      // Tell Near_Mem to do its SFENCE_VMA
+      near_mem.sfence_vma;
       rg_state <= CPU_SFENCE_VMA;
-   endrule: rl_stage1_SFENCE_VMA
-
-   // ----------------
-
-   rule rl_finish_SFENCE_VMA (rg_state == CPU_SFENCE_VMA);
-      if (cur_verbosity > 1) $display ("%0d: %m.rl_finish_SFENCE_VMA", mcycle);
-
-      // Await SFENCE.VMA completion
-      let dummy <- near_mem.sfence_vma_server.response.get;
 
       // Accounting
       csr_regfile.csr_minstret_incr;
-      // Debug
-      fa_emit_instr_trace (mcycle, minstret,
-			   stage1.out.data_to_stage2.pc,
-			   stage1.out.data_to_stage2.instr,
-			   rg_cur_priv);
+
 `ifdef INCLUDE_TANDEM_VERIF
       // Trace data
       let trace_data = stage1.out.data_to_stage2.trace_data;
       f_trace_data.enq (trace_data);
 `endif
+
+      // Debug
+      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
+      if (cur_verbosity > 1)
+	 $display ("%0d: %m.rl_stage1_SFENCE_VMA", mcycle);
+   endrule: rl_stage1_SFENCE_VMA
+
+   // ----------------
+   // Finish SFENCE.VMA
+
+   rule rl_finish_SFENCE_VMA (rg_state == CPU_SFENCE_VMA);
+      if (cur_verbosity > 1) $display ("%0d: %m.rl_finish_SFENCE_VMA", mcycle);
+
+      // Note: Await mem system SFENCE.VMA completion, if SFENCE.VMA becomes split-phase
+
       // Resume pipe
       stageD.set_full (False);
       stage1.set_full (False);    fa_step_check;
       fa_stageF_redirect (rg_next_pc);
+
+      if (cur_verbosity > 1)
+	 $display ("    CPU.rl_finish_SFENCE_VMA");
    endrule: rl_finish_SFENCE_VMA
-`endif
 
    // ================================================================
    // Stage1: nonpipe special: WFI
@@ -1375,7 +1369,7 @@ module mkCPU (CPU_IFC);
 `endif
 
       // Debug
-      fa_emit_instr_trace (mcycle, minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
+      fa_emit_instr_trace (minstret, stage1.out.data_to_stage2.pc, stage1.out.data_to_stage2.instr, rg_cur_priv);
       if (cur_verbosity > 1)
 	 $display ("    CPU.rl_stage1_WFI");
    endrule: rl_stage1_WFI
@@ -1639,7 +1633,6 @@ module mkCPU (CPU_IFC);
    // Debug Module FPR read/write
 
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    rule rl_debug_read_fpr ((rg_state == CPU_DEBUG_MODE) && (! f_fpr_reqs.first.write));
       let req <- pop (f_fpr_reqs);
       Bit #(5) regname = req.address;
@@ -1673,7 +1666,6 @@ module mkCPU (CPU_IFC);
       if (cur_verbosity > 1)
 	 $display ("%0d: %m.rl_debug_fpr_access_busy", mcycle);
    endrule
-`endif
 `endif
 
    // ----------------
@@ -1730,7 +1722,7 @@ module mkCPU (CPU_IFC);
    interface  imem_master = near_mem.imem_master;
 
    // DMem to fabric master interface
-   interface Near_Mem_Fabric_IFC  mem_master = near_mem.mem_master;
+   interface  dmem_master = near_mem.dmem_master;
 
    // ----------------------------------------------------------------
    // Optional AXI4-Lite D-cache slave interface
@@ -1739,14 +1731,7 @@ module mkCPU (CPU_IFC);
    interface  dmem_slave = near_mem.dmem_slave;
 `endif
 
-`ifdef COHERENT_DMA
    // ----------------
-   // Interface to 'coherent DMA' port of optional L2 cache
-
-   interface dma_server = near_mem.dma_server;
-`endif
-
-   // ----------------------------------------------------------------
    // External interrupts
 
    method Action  m_external_interrupt_req (x) = csr_regfile.m_external_interrupt_req (x);
@@ -1763,6 +1748,14 @@ module mkCPU (CPU_IFC);
 
    method Action  nmi_req (x);
       csr_regfile.nmi_req (x);
+   endmethod
+
+   // ----------------
+   // For tracing
+
+   method Action  set_verbosity (Bit #(4)  verbosity, Bit #(64)  logdelay);
+      cfg_verbosity <= verbosity;
+      cfg_logdelay  <= logdelay;
    endmethod
 
    // ----------------
@@ -1789,47 +1782,13 @@ module mkCPU (CPU_IFC);
    interface Server  hart0_gpr_mem_server = toGPServer (f_gpr_reqs, f_gpr_rsps);
 
 `ifdef ISA_F
-`ifndef ONLY_POSITS
    // FPR access
    interface Server  hart0_fpr_mem_server = toGPServer (f_fpr_reqs, f_fpr_rsps);
-`endif
 `endif
 
    // CSR access
    interface Server  hart0_csr_mem_server = toGPServer (f_csr_reqs, f_csr_rsps);
 `endif
-
-   // ----------------------------------------------------------------
-   // Misc. control and status
-
-   // ----------------
-   // Debugging: set core's verbosity
-
-   method Action  set_verbosity (Bit #(4)  verbosity, Bit #(64)  logdelay);
-      cfg_verbosity <= verbosity;
-      cfg_logdelay  <= logdelay;
-   endmethod
-
-   // ----------------
-   // For ISA tests: watch memory writes to <tohost> addr
-
-`ifdef WATCH_TOHOST
-   method Action set_watch_tohost (Bool watch_tohost, Bit #(64) tohost_addr);
-      near_mem.set_watch_tohost (watch_tohost, tohost_addr);
-   endmethod
-
-   method Bit #(64) mv_tohost_value = near_mem.mv_tohost_value;
-`endif
-
-   // Inform core that DDR4 has been initialized and is ready to accept requests
-   method Action ma_ddr4_ready;
-      near_mem.ma_ddr4_ready;
-   endmethod
-
-   // Misc. status; 0 = running, no error
-   method Bit #(8) mv_status;
-      return near_mem.mv_status;
-   endmethod
 
 endmodule: mkCPU
 
