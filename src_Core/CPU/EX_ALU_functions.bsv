@@ -30,6 +30,7 @@ import Vector :: *;
 import ISA_Decls   :: *;
 import CPU_Globals :: *;
 import TV_Info     :: *;
+//import Accel_Defines :: *;  //PositAccelerator definitions
 
 // ================================================================
 // ALU inputs
@@ -58,6 +59,11 @@ typedef struct {
 `ifdef POSIT
    WordPL         prs1_val;
    WordPL         prs2_val;
+`endif
+`ifdef ACCEL
+   WordAL         accelrs1_val;
+   WordAL         accelrs2_val;
+   Bit #(1)       rocc_value_bit;
 `endif
    MISA           misa;
    } ALU_Inputs
@@ -88,7 +94,7 @@ typedef struct {
    Exc_Code   exc_code;        // Relevant if control == CONTROL_TRAP
 
    Op_Stage2  op_stage2;
-   RegName    rd;
+   RegName    rd;              //destination register bit[11:7] of instruction
    Addr       addr;           // Branch, jump: newPC
 		              // Mem ops and AMOs: mem addr
    WordXL     val1;           // OP_Stage2_ALU: result for Rd (ALU ops: result, JAL/JALR: return PC)
@@ -119,6 +125,21 @@ typedef struct {
    Bit #(3)   rm;             // rounding mode
 `endif
 
+`ifdef ACCEL //accelerator
+   Bool       rd_in_ppr;      // For instructions where the destn
+                              // is in the Posit RF
+   Bool       rs_frm_ppr;     // src register is in ppr (for posit stores)
+   Bool       no_rd_upd;      // For instructions where the destn
+                              // is quire, there will be no update
+                              // of architectural state
+   WordAL     accelval1;          // OP_Stage2_ACCEL: arg1
+   WordAL     accelval2;          // OP_Stage2_ACCEL: arg2
+   Bit #(3)   rm;             // rounding mode
+   Bit #(3)   funct3;        ////Part of custom instruction to select whether register address is of flute or accelerator , in accelerator funct3 is referred as rg_sel in which  rg_sel[2] is xd;rg_sel[1] is xs1;rg_sel[0] is xs2.
+   
+   Bit #(7)   funct7;         //funct7 decides  which accelerator operation to be performed by the accelerator,inside the accelerator this is referred as opcode 
+   Bit #(1)   rocc_value_bit;          //Value bit of RoCC
+`endif
    CF_Info    cf_info;        // For redirection and branch predictor
 
 `ifdef INCLUDE_TANDEM_VERIF
@@ -156,6 +177,19 @@ ALU_Outputs alu_outputs_base
 	       pval2       : ?,
 `endif
 	       rm          : ?,
+`endif
+`ifdef ACCEL
+	  
+               no_rd_upd   : False,
+	       rs_frm_ppr  : False,
+	       rd_in_ppr   : False,
+	       accelval1   : ?,
+	       accelval2   : ?,
+               funct3      : ?,
+	       rm	   : ?,			
+	       funct7	   : ?,
+          rocc_value_bit   : ?,
+
 `endif
 	       cf_info     : cf_info_base
 
@@ -702,41 +736,34 @@ function ALU_Outputs fv_LD (ALU_Inputs inputs);
 `endif
 `ifdef ISA_F
 		    || (funct3 == f3_FLW)
-`ifdef POSIT
-		    || (funct3 == f3_PLW)
-`endif
 `endif
 `ifdef ISA_D
 		    || (funct3 == f3_FLD)
 `endif
 		    );
 
-   let alu_outputs = alu_outputs_base;
-
    // FP loads are not legal unless the MSTATUS.FS bit is set
    Bool legal_FP_LD = True;
 `ifdef ISA_F
-   if (opcode == op_LOAD_FP) begin
+   //if ((opcode == op_LOAD_FP) || (opcode == op_LOAD_P))
+  if (opcode == op_LOAD_FP) 
       legal_FP_LD = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
-
-`ifdef POSIT
-      // when posit loads are in the picture, f3 == PLW is reserved
-      // for loads to PPR. All other loads are to FPR
-      alu_outputs.rd_in_fpr = (funct3 != f3_PLW);
-      alu_outputs.rd_in_ppr = (funct3 == f3_PLW);
-   `else
-      // note that the destination register for this load is in the FPR
-      alu_outputs.rd_in_fpr = True;
-`endif
-   end
 `endif
 
+   let alu_outputs = alu_outputs_base;
 
    alu_outputs.control   = ((legal_LD && legal_FP_LD) ? CONTROL_STRAIGHT
                                                       : CONTROL_TRAP);
    alu_outputs.op_stage2 = OP_Stage2_LD;
    alu_outputs.rd        = inputs.decoded_instr.rd;
    alu_outputs.addr      = eaddr;
+`ifdef ISA_F
+   // note that the destination register for this load is in the FPR
+   alu_outputs.rd_in_fpr = (opcode == op_LOAD_FP);
+`ifdef POSIT
+   alu_outputs.rd_in_ppr = (opcode == op_LOAD_P);
+`endif
+`endif
 
 `ifdef INCLUDE_TANDEM_VERIF
    // Normal trace output (if no trap)
@@ -797,16 +824,17 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
    if (opcode == op_STORE_FP) begin
       legal_FP_ST = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
 
-`ifdef POSIT
-      // when posit stores are in the picture, f3 == PSW is reserved
-      // for stores from PPR. All other stores are from FPR
-      alu_outputs.rs_frm_fpr = (funct3 != f3_PSW);
-      alu_outputs.rs_frm_ppr = (funct3 == f3_PSW);
-`else
       // note that the source data register for this store is in the FPR
       alu_outputs.rs_frm_fpr = True;
-`endif
    end
+`ifdef POSIT
+   else if (opcode == op_STORE_P) begin
+      legal_FP_ST = (fv_mstatus_fs (inputs.mstatus) != fs_xs_off);
+
+      // note that the source data register for this store is in the FPR
+      alu_outputs.rs_frm_ppr = True;
+   end
+`endif
 `endif
 
    alu_outputs.control   = ((legal_ST && legal_FP_ST) ? CONTROL_STRAIGHT
@@ -818,14 +846,10 @@ function ALU_Outputs fv_ST (ALU_Inputs inputs);
 
 `ifdef ISA_F
    alu_outputs.fval2     = inputs.frs2_val;
-`ifdef POSIT
-   alu_outputs.pval2     = inputs.prs2_val;
-`endif
 `endif
 
 `ifdef INCLUDE_TANDEM_VERIF
    // Normal trace output (if no trap)
-   // Posits are not supported in TV
 `ifdef ISA_F
    if (opcode == op_STORE_FP)
       alu_outputs.trace_data = mkTrace_F_STORE (fall_through_pc (inputs),
@@ -1074,6 +1098,62 @@ function ALU_Outputs fv_FP (ALU_Inputs inputs);
 endfunction
 `endif
 
+
+// ----------------------------------------------------------------
+// ACCEL 
+// Just pass through to the PositAccel 
+
+`ifdef ACCEL
+
+function ALU_Outputs fv_ACCEL (ALU_Inputs inputs);
+   let opcode = inputs.decoded_instr.opcode; //this opcode will indicate that accelerator is to be set
+   let funct3 = inputs.decoded_instr.funct3;
+   let funct7 = inputs.decoded_instr.funct7;
+   let rs2    = inputs.decoded_instr.rs2;
+  
+   /*// Check instruction legality for accelerator
+
+//analogy from ISA_F condition has been taken(few things are copied),changes are required.
+   
+   // Is the rounding mode legal
+   match {.rm, .rm_is_legal} = accel_rmode_check  (funct3, inputs.frm);
+
+   // Is the instruction legal -- if MSTATUS.FS = fs_xs_off, FP instructions
+   // are always illegal,Check for similar conditions for accelerator(if applicable)
+
+   let inst_is_legal = (  (fv_mstatus_fs (inputs.mstatus) == fs_xs_off)
+			? False
+			: accel_instr_legal (funct7,
+						rs2,
+						opcode));*/
+
+
+//ToDo: Instruction legality check w.r.t RoCC can be checked later(if applicable here)
+
+
+   let alu_outputs         = alu_outputs_base;
+   /*alu_outputs.control     = ((inst_is_legal && rm_is_legal) ? CONTROL_STRAIGHT
+                       : CONTROL_TRAP);*/
+
+
+   alu_outputs.op_stage2   = OP_Stage2_ACCEL;  
+   alu_outputs.rd          = inputs.decoded_instr.rd;
+   alu_outputs.rm          = rm;
+   alu_outputs.funct3      = inputs.decoded_instr.funct3;
+   alu_outputs.funct7      = inputs.decoded_instr.funct7;  
+   alu_outputs.no_rd_upd   = accel_is_destn_in_quire (opcode, funct7);// Posit instructions which update the quire does not update ,function definition in ISA_Decls
+   alu_outputs.rd_in_ppr = (  accel_is_rd_in_PPR (opcode, funct7)
+                           || accel_is_destn_in_quire (opcode, funct7));
+   
+
+   // Just copy the accelrs*_val values from inputs to outputs
+   alu_outputs.accelval1     = inputs.accelrs1_val;
+   alu_outputs.accelval2     = inputs.accelrs2_val;
+
+
+return alu_outputs;
+endfunction
+`endif
 // ----------------------------------------------------------------
 // AMO
 // Just pass through to the memory stage
@@ -1231,6 +1311,14 @@ function ALU_Outputs fv_ALU (ALU_Inputs inputs);
    else if (   (inputs.decoded_instr.opcode == op_STORE_FP))
       alu_outputs = fv_ST (inputs);
 
+`ifdef POSIT
+   else if (   (inputs.decoded_instr.opcode == op_LOAD_P))
+      alu_outputs = fv_LD (inputs);
+
+   else if (   (inputs.decoded_instr.opcode == op_STORE_P))
+      alu_outputs = fv_ST (inputs);
+`endif
+
    else if (   (inputs.decoded_instr.opcode == op_FP)
             || (inputs.decoded_instr.opcode == op_FMADD)
             || (inputs.decoded_instr.opcode == op_FMSUB)
@@ -1239,6 +1327,21 @@ function ALU_Outputs fv_ALU (ALU_Inputs inputs);
            )
       alu_outputs = fv_FP (inputs);
 `endif
+
+`ifdef ACCEL          //accelerator operations
+
+   else if (inputs.decoded_instr.opcode==accel_opc &&         ((inputs.decoded_instr.func7 == f7_fma_p)
+            || (inputs.decoded_instr.func7 == f7_fda_p)
+            || (inputs.decoded_instr.func7 == f7_fms_p)
+            || (inputs.decoded_instr.func7 == f7_fds_p)
+            || (inputs.decoded_instr.func7 == f7_fcvt_p_s)
+	    || (inputs.decoded_instr.func7 == f7_fcvt_s_p)
+	    || (inputs.decoded_instr.func7 == f7_fcvt_p_r)
+            || (inputs.decoded_instr.func7 == f7_fcvt_r_p))
+           )
+      alu_outputs = fv_ACCEL (inputs);
+`endif
+
 
    else begin
       alu_outputs.control = CONTROL_TRAP;

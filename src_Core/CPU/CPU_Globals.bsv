@@ -22,7 +22,7 @@ package CPU_Globals;
 import ISA_Decls :: *;
 
 import TV_Info   :: *;
-import Accel_Defines :: *;
+//import Accel_Defines :: *;
 
 // ================================================================
 // Output status of each stage
