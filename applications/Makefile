@@ -61,6 +61,8 @@ help:
 	@echo "Usage:"
 	@echo "    make all      # compile exectable 'main'"
 	@echo "    make clean    # remove executable and object files"
+	@echo "    make deep_clean    # remove run-time (non-report) files"
+	@echo "    make pristine # make like new"
 	@echo "    make sim      # run executable under simulation"
 	@echo
 	@echo "Use the program 'riscvexplorer-findcore' to select a core and"
@@ -72,13 +74,17 @@ MAIN ?= main
 .PHONY: all
 all: $(MAIN) objdump
 
-.PHONY:clean
+.PHONY: clean
 clean:
 	$(RM) *.o
 
-.PHONY:full_clean
-full_clean: clean
-	$(RM) $(MAIN) *.elf *.dump
+.PHONY: deep_clean
+deep_clean: clean
+	$(RM) $(MAIN) *.elf *.dump *.jou *.csv
+
+.PHONY: pristine
+pristine: deep_clean
+	$(RM) $(MAIN) *.rpt
 
 $(MAIN).o: uart.o startup.o syscalls.o riscv_counters.o clarinet.o
 
@@ -86,4 +92,3 @@ $(MAIN): $(MAIN).o clarinet.o riscv_counters.o
 
 objdump: $(MAIN)
 	$(OBJDUMP) -xd $(MAIN) > $(MAIN).dump
-

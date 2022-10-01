@@ -35,9 +35,9 @@ instructions. Directions to replicate these changes are in the
 `binutils` folder of this repository.
 
 ## CPU Source Code
-This repository was created by forking the [Flute repository](https://github.com/bluespec/Flute). Flute is a parametrizable
-RISC-V processor, and Clarinet is based on the Flute pipeline with
-enhancement for posit arithmetic. The rest of this README has been
+This repository was created by forking the [Flute repository](https://github.com/bluespec/Flute).
+Flute is a parametrizable RISC-V processor, and Clarinet is based on the Flute
+pipeline with enhancement for posit arithmetic. The rest of this README has been
 modified from the original Flute repository.
 
 ### About the source codes (in BSV and Verilog)
@@ -56,10 +56,9 @@ repository are for a few specific configurations:
     - 'C' extension: compressed instructions
     - 'M' extension: integer multiply/divide instructions
     - 'F' extension: single-precision floating point instructions
-    - Privilege levels M (machine), S (Supervisor) and U (user)
-    - Supports Sv32 virtual memory
+    - Privilege levels M (machine) and U (user)
     - Supports external, timer, software and non-maskable interrupts
-    - Passes all riscv-isa tests for RV32ACFIMUS
+    - Passes all riscv-isa tests for RV32ACFIMU
     - Boots FreeRTOS
 
 2. RV32ACFIMU_P16:

@@ -28,6 +28,7 @@ BSC_COMPILATION_FLAGS += \
 	-D POSIT       	\
 	-D QUILLS	\
 	-D INCLUDE_PDIV \
+	-D PWIDTH_8 	\
 
 # For Melodica debug statements
 # BSC_COMPILATION_FLAGS += -D RANDOM -D RANDOM_PRINT \

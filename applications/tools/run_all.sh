@@ -10,39 +10,48 @@ level=$3
 mkdir -p logs/itrace.${sz}
 echo "--------"
 echo "****** RUNNING WITH VERBOSITY = 0 (WARM) (FMADD) ******"
-../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --use-fmadd
+../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --use-fmadd --pwidths 8 --pwidths 16 --pwidths 32
+
+for t in f32
+do
+   mv logs/$t.${sz}.log logs/itrace.${sz}/${t}.v0.fmadd.${sz}.log
+done
+
+for f in f32-p8 f32-p16 f32-p32 p8 p16 p32
+do
+   mv logs/${f}.${sz}.log logs/itrace.${sz}/${f}.v0.${sz}.log
+done
 
 echo ""
 echo "--------"
 echo "****** RUNNING WITH VERBOSITY = 1 (WARM) (FMADD) ******"
-../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --use-fmadd --verbosity +v1
+../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --use-fmadd --pwidths 8 --pwidths 16 --pwidths 32 --verbosity +v1
 
-# for t in f32 f64
-for t in f32 f64
+for t in f32
 do
    mv logs/$t.${sz}.log logs/itrace.${sz}/$t.fmadd.${sz}.log 
    mv $t.${sz}.${app}.dump $t.${sz}.${app}-fmadd.dump
 done
 
-for f in f32-p8 f32-p16 f32-p24 f32-p32 p8 p16 p24 p32
+for f in f32-p8 f32-p16 f32-p32 p8 p16 p32
 do
    mv logs/${f}.${sz}.log logs/itrace.${sz}/${f}.${sz}.log
 done
 
-echo ""
-echo "--------"
-echo "****** RUNNING WITH VERBOSITY = 0 (WARM) ******"
+#echo ""
+#echo "--------"
+#echo "****** RUNNING WITH VERBOSITY = 0 (WARM) ******"
 #../batch-compile --sim --compile --vszs ${sz} --main ${app} --warm-caches --data-types FLOAT --data-types DOUBLE
-../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --data-types FLOAT
+#../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --data-types FLOAT
 
-echo ""
-echo "--------"
-echo "****** RUNNING WITH VERBOSITY = 1 (WARM) ******"
+#echo ""
+#echo "--------"
+#echo "****** RUNNING WITH VERBOSITY = 1 (WARM) ******"
 #../tools/batch-compile --sim --compile --vszs ${sz} --main ${app} --warm-caches --data-types FLOAT --data-types DOUBLE --verbosity +v1
-../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --data-types FLOAT --verbosity +v1
+#../tools/batch-compile --sim --compile --level ${level} --vszs ${sz} --main ${app} --warm-caches --data-types FLOAT --verbosity +v1
 
 # for t in f32 f64
-for t in f32
-do
-   mv logs/$t.${sz}.log logs/itrace.${sz}/$t.${sz}.log 
-done
+#for t in f32
+#do
+#   mv logs/$t.${sz}.log logs/itrace.${sz}/$t.${sz}.log 
+#done

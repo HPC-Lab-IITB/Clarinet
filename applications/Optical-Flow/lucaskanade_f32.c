@@ -81,17 +81,19 @@ int normalise = 0;
      
      /********************/
      
+     uint32_t ata_cycle = read_cycle();
      float AtA_f[2][2];
      for (int row = 0; row < 2; row++) {
          for (int col = 0; col < 2; col++) {
             AtA_f[row][col] = 0.0;
             for (int k=0; k<Arows; k++) {
-               // AtA_f[row][col] += fn_float_fma (A[k][row], A[k][col], AtA_f[row][col]);
                AtA_f[row][col] += (A[k][row] * A[k][col]);
             }	
          }
      }
+     ata_cycle = read_cycle() - ata_cycle;
                  
+     uint32_t atb_cycle = read_cycle();
      float AtB[2][1];
      for (int row = 0; row < 2; row++) {
          for (int col = 0; col < 1; col++) {
@@ -101,7 +103,8 @@ int normalise = 0;
                AtB[row][col] += (A[k][row] * B[k]);
             }	
          }
-     }		 
+     }
+     atb_cycle = read_cycle() - atb_cycle;
      
     /********************/
 
@@ -110,12 +113,14 @@ int normalise = 0;
 
     // Find inverse of AtA
     float det = (AtA_f[0][0]*AtA_f[1][1])-(AtA_f[0][1]*AtA_f[1][0]);
-    if ((det) != 0) {					
+    uint32_t vpt_cycle = 0;
+    if (det != 0.0) {					
         AtAInv[0][0] = (AtA_f[1][1]/det);
         AtAInv[0][1] = (-AtA_f[0][1]/det);
         AtAInv[1][0] = (-AtA_f[1][0]/det);
         AtAInv[1][1] = (AtA_f[0][0]/det);
         
+        vpt_cycle = read_cycle();
         for (int row = 0; row < 2; row++) {
              for (int col = 0; col < 1; col++) {
                 Vpt[row][col] = 0.0; 
@@ -124,6 +129,7 @@ int normalise = 0;
              	}	
              }
          }
+         vpt_cycle = read_cycle() - vpt_cycle;
          
          V[i][0] = (Vpt[0][0]);
          V[i][1] = (Vpt[0][1]);
@@ -132,6 +138,9 @@ int normalise = 0;
     else {
         V[i][0] = 0.0; V[i][1] = 0.0;
     }
+    printf ("ata_cycle = %d\n", ata_cycle);
+    printf ("atb_cycle = %d\n", atb_cycle);
+    printf ("vpt_cycle = %d\n", vpt_cycle);
  }
 
 	 
@@ -168,16 +177,21 @@ int normalise = 0;
           } else if (fCount == 2) {
              buildA(I2, POI[i][0][1], POI[i][0][0], kernelSize, A);          
              buildB(I2, I1, POI[i][0][1], POI[i][0][0], kernelSize, B);
+             start = read_cycle();
              calcV(A, B, V, kernelSize, i);			 
+             end = read_cycle();
+             avg_cycles += (end - start);
           } else if (fCount == 3) {
              buildA(I3, POI[i][0][1], POI[i][0][0], kernelSize, A);          
              buildB(I3, I2, POI[i][0][1], POI[i][0][0], kernelSize, B);
+             start = read_cycle();
              calcV(A, B, V, kernelSize, i);			 
+             end = read_cycle();
+             avg_cycles += (end - start);
           }
        }
     }
-    avg_cycles = avg_cycles/length;
-    printf ("Cycles per iteration: Velocity computation: %d cycles.\n", avg_cycles);
+    printf ("Velocity computation: %d cycles.\n", avg_cycles);
     return 0;
  }
 

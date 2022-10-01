@@ -7,7 +7,8 @@ def main (argv) :
     # Command-line parsing
     parser = argparse.ArgumentParser (
               formatter_class=argparse.RawDescriptionHelpFormatter
-            , description="Generates data for linear algebra tests. Call once for each variable.")
+            , description="""Generates data for linear algebra tests. Call once for each variable.
+                             Variable array length should be multiples of 8 """)
 
     parser.add_argument (
               '--vsz'
@@ -89,27 +90,27 @@ def main (argv) :
     # random float vals from farhad's GBLAS data generator
     seed_vals = {}
     seed_vals_H = {}
-    seed_vals ['f64'] = [ '3.4050474167', '3.1847724915', '7.3107628822', '-5.6170530319', '-4.7297372818', '4.5974335670', '6.0904574394', '-3.0683014393', '4.1741681099', '-3.3324038982', '-7.1214756966', '2.7567198277', '-3.4179165363', '-9.2278394699', '8.9482812881', '-0.3960950971' ]
+    seed_vals ['f64'] = [ '3.4050474167', '3.1847724915', '7.3107628822', '-5.6170530319', '-4.7297372818', '4.5974335670', '6.0904574394', '-3.0683014393' ] #'4.1741681099', '-3.3324038982', '-7.1214756966', '2.7567198277', '-3.4179165363', '-9.2278394699', '8.9482812881', '-0.3960950971' ]
 
     # random p8 vals from farhad's GBLAS data generator
-    seed_vals ['f32'] = [ '3.4050474167', '3.1847724915', '7.3107628822', '-5.6170530319', '-4.7297372818', '4.5974335670', '6.0904574394', '-3.0683014393', '4.1741681099', '-3.3324038982', '-7.1214756966', '2.7567198277', '-3.4179165363', '-9.2278394699', '8.9482812881', '-0.3960950971' ]
+    seed_vals ['f32'] = [ '3.4050474167', '3.1847724915', '7.3107628822', '-5.6170530319', '-4.7297372818', '4.5974335670', '6.0904574394', '-3.0683014393' ] # '4.1741681099', '-3.3324038982', '-7.1214756966', '2.7567198277', '-3.4179165363', '-9.2278394699', '8.9482812881', '-0.3960950971' ]
 
     # random p8 vals from farhad's GBLAS data generator
-    seed_vals ['p8'] = [ '0x87', '0x8f', '0x8c', '0x69', '0x73', '0x78', '0x8e', '0xb1', '0xb2', '0x62', '0x87', '0x12', '0x9e', '0x76', '0x9e', '0xef' ]
+    seed_vals ['p8'] = [ '0x87', '0x8f', '0x8c', '0x69', '0x73', '0x78', '0x8e', '0xb1' ] # '0xb2', '0x62', '0x87', '0x12', '0x9e', '0x76', '0x9e', '0xef' ]
 
     # random p16 vals from farhad's GBLAS data generator
-    seed_vals ['p16'] = [ '0x96ac', '0x9f09', '0x9c02', '0x5937', '0x62b1', '0x6880', '0x9e74', '0xb8ae', '0xb916', '0x51f4', '0x96c3', '0x2262', '0xadce', '0x6676', '0xadcd', '0xdec6' ]
+    seed_vals ['p16'] = [ '0x96ac', '0x9f09', '0x9c02', '0x5937', '0x62b1', '0x6880', '0x9e74', '0xb8ae' ] # '0xb916', '0x51f4', '0x96c3', '0x2262', '0xadce', '0x6676', '0xadcd', '0xdec6' ]
 
     # random p24 vals from farhad's GBLAS data generator
-    seed_vals ['p24'] = [ '0xac15', '0x08ad', '0x0184', '0x9b95', '0xb135', '0x803d', '0x7454', '0x56fb', '0x8b1b', '0xfa05', '0xc300', '0x3140', '0xe6d0', '0x75aa', '0xe64d', '0x62f6' ]
+    seed_vals ['p24'] = [ '0xac15', '0x08ad', '0x0184', '0x9b95', '0xb135', '0x803d', '0x7454', '0x56fb' ] # '0x8b1b', '0xfa05', '0xc300', '0x3140', '0xe6d0', '0x75aa', '0xe64d', '0x62f6' ]
 
-    seed_vals_H ['p24'] = [ '0xa6', '0xaf', '0xac', '0x4c', '0x52', '0x58', '0xae', '0xbc', '0xbc', '0x48', '0xa6', '0x31', '0xb6', '0x56', '0xb6', '0xcf' ]
+    seed_vals_H ['p24'] = [ '0xa6', '0xaf', '0xac', '0x4c', '0x52', '0x58', '0xae', '0xbc' ] # '0xbc', '0x48', '0xa6', '0x31', '0xb6', '0x56', '0xb6', '0xcf' ]
 
     # random p32 vals from farhad's GBLAS data generator
-    seed_vals ['p32'] = [ '0xa6ac1570', '0xaf08ad60', '0xac0183f0', '0x4c9b9540', '0x52b13500', '0x58803d70', '0xae745430', '0xbc56fb50', '0xbc8b1aa0', '0x48fa0540', '0xa6c2ffa0', '0x31313ff0', '0xb6e6cfe0', '0x5675aa10', '0xb6e64d30', '0xcf62f5a0' ]
+    seed_vals ['p32'] = [ '0xa6ac1570', '0xaf08ad60', '0xac0183f0', '0x4c9b9540', '0x52b13500', '0x58803d70', '0xae745430', '0xbc56fb50' ] # '0xbc8b1aa0', '0x48fa0540', '0xa6c2ffa0', '0x31313ff0', '0xb6e6cfe0', '0x5675aa10', '0xb6e64d30', '0xcf62f5a0' ]
 
     # number of times to repeat the seed-array contents to create the operand arrays of desired size
-    repetition = args.vec_size // 16
+    repetition = args.vec_size // 8
 
     operand_decl = 'static '
     operand_decl_H = 'static '

@@ -3,3 +3,5 @@
 *.rpt
 *.csv
 logs
+analysis
+deprecated

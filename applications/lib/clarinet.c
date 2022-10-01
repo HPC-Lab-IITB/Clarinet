@@ -21,7 +21,7 @@ void fn_posit_p_fma (unsigned int a, unsigned int b) {
 #ifdef PWIDTH_32
 void fn_posit_p_fma (unsigned int a, unsigned int b) {
 #endif
-   asm (
+   asm volatile (
           "pmv.w.x fa4, %[inA]\n"
           "pmv.w.x fa5, %[inB]\n"
           "fma.p   ft0, fa4, fa5"
@@ -34,7 +34,7 @@ void fn_posit_p_fma (unsigned int a, unsigned int b) {
 #endif
 
 void fn_posit_fma (float a, float b) {
-   asm (
+   asm volatile (
          "fcvt.p.s ft0, %[inA]\n" 
          "fcvt.p.s ft1, %[inB]\n" 
          "fma.p    ft0, ft0, ft1"
@@ -48,11 +48,11 @@ void fn_posit_fma (float a, float b) {
 #ifdef DOUBLE
 double fn_double_fma (double a, double b, double acc) {
    double res;
-   asm ( "fmadd.d   %[o_acc], %[i_a], %[i_b], %[i_acc]"
+   asm volatile ( "fmadd.d   %[o_acc], %[i_a], %[i_b], %[i_acc]"
 #else
 float fn_float_fma (float a, float b, float acc) {
    float res;
-   asm ( "fmadd.s   %[o_acc], %[i_a], %[i_b], %[i_acc]"
+   asm volatile ( "fmadd.s   %[o_acc], %[i_a], %[i_b], %[i_acc]"
 #endif
          : [o_acc] "=f" (res)
          : [i_a] "f" (a), [i_b] "f" (b), [i_acc] "f" (acc)
@@ -77,7 +77,7 @@ void fn_posit_p_fms (unsigned int a, unsigned int b) {
 #ifdef PWIDTH_32
 void fn_posit_p_fms (unsigned int a, unsigned int b) {
 #endif
-   asm (
+   asm volatile (
           "pmv.w.x fa4, %[inA]\n"
           "pmv.w.x fa5, %[inB]\n"
           "fms.p   ft0, fa4, fa5"
@@ -90,7 +90,7 @@ void fn_posit_p_fms (unsigned int a, unsigned int b) {
 #endif
 
 void fn_posit_fms (float a, float b) {
-   asm (
+   asm volatile (
          "fcvt.p.s ft0, %[inA]\n" 
          "fcvt.p.s ft1, %[inB]\n" 
          "fms.p    ft0, ft0, ft1"
@@ -117,7 +117,7 @@ void fn_posit_p_fda (unsigned int a, unsigned int b) {
 #ifdef PWIDTH_32
 void fn_posit_p_fda (unsigned int a, unsigned int b) {
 #endif
-   asm (
+   asm volatile (
           "pmv.w.x fa4, %[inA]\n"
           "pmv.w.x fa5, %[inB]\n"
           "fda.p   ft0, fa4, fa5"
@@ -130,7 +130,7 @@ void fn_posit_p_fda (unsigned int a, unsigned int b) {
 #endif
 
 void fn_posit_fda (float a, float b) {
-   asm (
+   asm volatile (
          "fcvt.p.s ft0, %[inA]\n" 
          "fcvt.p.s ft1, %[inB]\n" 
          "fda.p    ft0, ft0, ft1"
@@ -157,7 +157,7 @@ void fn_posit_p_fds (unsigned int a, unsigned int b) {
 #ifdef PWIDTH_32
 void fn_posit_p_fds (unsigned int a, unsigned int b) {
 #endif
-   asm (
+   asm volatile (
           "pmv.w.x fa4, %[inA]\n"
           "pmv.w.x fa5, %[inB]\n"
           "fds.p   ft0, fa4, fa5"
@@ -170,7 +170,7 @@ void fn_posit_p_fds (unsigned int a, unsigned int b) {
 #endif
 
 void fn_posit_fds (float a, float b) {
-   asm (
+   asm volatile (
          "fcvt.p.s ft0, %[inA]\n" 
          "fcvt.p.s ft1, %[inB]\n" 
          "fds.p    ft0, ft0, ft1"
@@ -186,11 +186,11 @@ void fn_posit_fds (float a, float b) {
 #ifdef DOUBLE
 double fn_double_sqrt (double a) {
    double res;
-   asm ( "fsqrt.d %[o_res], %[i_a]"
+   asm volatile ( "fsqrt.d %[o_res], %[i_a]"
 #else
 float fn_float_sqrt (float a) {
    float res;
-   asm ( "fsqrt.s %[o_res], %[i_a]"
+   asm volatile ( "fsqrt.s %[o_res], %[i_a]"
 #endif
          : [o_res] "=f" (res)
          : [i_a]   "f"  (a)
@@ -214,23 +214,23 @@ void fn_init_p_quire (unsigned int initVal) {
 #ifdef PWIDTH_32
 void fn_init_p_quire (unsigned int initVal) {
 #endif
-   asm (
+   asm volatile (
          "pmv.w.x fa4, %[inA]\n"
          "fcvt.r.p ft0, fa4"
          : 
          : [inA] "r" (initVal)
-         : "fa4"
+         : "fa4", "ft0"
        );
    return;
 }
 
 void fn_init_quire (float initVal) {
-   asm (
+   asm volatile (
          "fcvt.p.s ft1, %[inA]\n"
          "fcvt.r.p ft0, ft1"
          :
          : [inA] "f" (initVal)
-         : "ft1"
+         : "ft1", "ft0"
        );
    return;
 }
@@ -255,7 +255,7 @@ unsigned int fn_read_p_quire (void) {
 unsigned int fn_read_p_quire (void) {
    unsigned int res;
 #endif
-   asm ( "fcvt.p.r ft0, ft0 \n"
+   asm volatile ( "fcvt.p.r ft0, ft0 \n"
          "pmv.x.w  %[o_res], ft0" 
          : [o_res] "=r" (res)
          : 
@@ -268,7 +268,7 @@ unsigned int fn_read_p_quire (void) {
 // Read the quire and return a float
 float fn_read_quire (void) {
    float res;
-   asm ( "fcvt.p.r ft0, ft0 \n"
+   asm volatile ( "fcvt.p.r ft0, ft0 \n"
          "fcvt.s.p %[o_res], ft0" 
          : [o_res] "=f" (res)
          : 
@@ -297,7 +297,7 @@ unsigned int   fn_float_to_posit (float a) {
 unsigned int   fn_float_to_posit (float a) {
    unsigned int res;
 #endif
-   asm ( "fcvt.p.s ft0, %[i_a]\n"
+   asm volatile ( "fcvt.p.s ft0, %[i_a]\n"
          "pmv.x.w  %[o_res], ft0" 
          : [o_res] "=r" (res)
          : [i_a] "f" (a)
